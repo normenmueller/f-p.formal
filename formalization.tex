@@ -1,0 +1,324 @@
+\documentclass{article}
+\usepackage{lscape}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{bcprules}
+\usepackage{mathpartir}
+\usepackage{mdframed}
+
+%% Math
+\theoremstyle{definition}
+\newmdtheoremenv[hidealllines=true,topline=true,bottomline=true,skipabove=\baselineskip,skipbelow=\baselineskip]{defn}{Definition}[section]
+
+\theoremstyle{definition}
+\newmdtheoremenv[hidealllines=true,topline=true,bottomline=true,skipabove=\baselineskip,skipbelow=\baselineskip]{prop}{Property}[section]
+
+%% Spacing
+\newcommand{\gap}{\quad\quad}
+
+%% Arrays
+\newcommand{\ba}{\begin{array}}
+\newcommand{\ea}{\end{array}}
+
+%% Syntax
+% Member sequences
+\newcommand{\seq}[1]{\overline{#1}}
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Core language abstract syntax.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{figure}[t!]
+\centering
+
+$\ba[t]{l@{\hspace{2mm}}l}
+t ::=                                       & \mbox{{\it{terms:}}}
+\\
+\gap \:\:\:  x                              & \mbox{variable}
+\\
+\gap ~|~  (x: T) \Rightarrow t              & \mbox{abstraction}
+\\
+\gap ~|~  t~t                               & \mbox{application}
+\\
+\gap ~|~  \texttt{let}~x = t~\texttt{in}~t  & \mbox{let binding}
+\\
+\gap ~|~  \{ \seq{l = t} \}                 & \mbox{record construction}
+\\
+\gap ~|~  t.l                               & \mbox{selection}
+\\
+\gap ~|~  \texttt{spore}~\{~\seq{x : T = t}~; (x: T) \Rightarrow t~\}  & \mbox{spore}
+\\
+\gap ~|~  \texttt{map}(r, t[, t])           & \mbox{map}
+\\
+\gap ~|~  \texttt{flatMap}(r, t[, t])       & \mbox{flatMap}
+\\
+\gap ~|~  \texttt{send}(r)                  & \mbox{send}
+\\
+\gap ~|~  \texttt{await}(\iota)             & \mbox{await future}
+\\
+\gap ~|~  r                                 & \mbox{silo reference}
+\\
+\gap ~|~  \iota                             & \mbox{future}
+\\
+                                            &
+\\
+v ::=                                       & \mbox{{\it{values:}}}
+\\
+\gap \:\:\: (x: T) \Rightarrow t            & \mbox{abstraction value}
+\\
+\gap ~|~  \{ \seq{l = v} \}                 & \mbox{record value}
+\\
+\gap ~|~  p                                 & \mbox{spore value}
+\\
+\gap ~|~  r                                 & \mbox{silo reference}
+\\
+\gap ~|~  \iota                             & \mbox{future}
+\\
+p ::=     \texttt{spore}~\{~\seq{x : T = v}~; (x: T) \Rightarrow t~\}  & \mbox{spore value}
+\\
+                                            &
+\\
+T ::=                                       & \mbox{{\it{types:}}}
+\\
+\gap \:\:\: T \Rightarrow T                 & \mbox{function type}
+\\
+\gap ~|~  \{ \seq{l : T} \}                 & \mbox{record type}
+\\
+\gap ~|~  \mathcal{S}                       & \mbox{}
+\\
+\mathcal{S} ::= T \Rightarrow T~\{~\texttt{type}~\mathcal{C} = \seq{T}~\}   & \mbox{spore type}
+\\
+\gap ~|~  T \Rightarrow T~\{~\texttt{type}~\mathcal{C}~\}   & \mbox{abstract spore type}
+\\
+\ea$
+
+\caption{Core language abstract syntax.}
+\end{figure}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Elements of the operational model.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{figure}[ht!]
+\centering
+
+$\ba[t]{l@{\hspace{2mm}}l}
+h \in Hosts                                      &
+\\
+i \in \mathbb{N}                                 &
+\\
+                                                 &
+\\
+\iota  ::=  (h, i)                               & \mbox{location}
+\\
+                                                 &
+\\
+r ::=     \text{Mat}(\iota)                      & \mbox{materialized}
+\\
+\gap ~|~  \text{Mapped}(\iota, h, r, p, opt_f)   & \mbox{lineage with \texttt{map}}
+\\
+\gap ~|~  \text{FMapped}(\iota, h, r, p, opt_f)  & \mbox{lineage with \texttt{flatMap}}
+\\
+                                                 &
+\\
+E      ::=  \epsilon                             & \mbox{message queue}
+\\
+\gap ~|~    \text{Res}(\iota, v) \texttt{::} E      & \mbox{response}
+\\
+\gap ~|~    \text{Req}(h, r, \iota) \texttt{::} E   & \mbox{request}
+\\
+\gap ~|~    \text{ReqF}(h, r, \iota) \texttt{::} E  & \mbox{request (fault)}
+\\
+\ea$
+
+\caption{Elements of the operational model.}
+\end{figure}
+
+\newpage
+\begin{landscape}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Deterministic reduction.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{figure}[ht!]
+\centering
+\begin{mathpar}
+\inferrule[\textsc{R-Map}]
+{
+  host(r) = h' \quad i~\text{fresh} \\
+  r' = \text{Mapped}((h, i), h', r, p, \text{None})
+}
+{ 
+  (R[\texttt{map}(r, p)], E, S)^h \longrightarrow (R[r'], E, S)^h
+}
+
+\inferrule[\textsc{R-FMap}]
+{ 
+  host(r) = h' \quad i~\text{fresh} \\
+  r' = \text{FMapped}((h, i), h', r, p, \text{None})
+}
+{ 
+  (R[\texttt{flatMap}(r, p)], E, S)^h \longrightarrow (R[r'], E, S)^h
+}
+
+\inferrule[\textsc{R-Await}]
+{
+  S(\iota) = \text{Some}(v)
+}
+{
+  (R[\texttt{await}(\iota)], E, S)^h \longrightarrow (R[v], E, S)^h
+}
+
+\inferrule[\textsc{R-Res}]
+{
+  E = \text{Res}(\iota, v) \texttt{::} E' \quad S' = S + (\iota \mapsto v)
+}
+{
+  (R[\texttt{await}(\iota_f)], E, S)^h \longrightarrow (R[\texttt{await}(\iota_f)], E', S')^h
+}
+
+\inferrule[\textsc{R-ReqLocal}]
+{
+  E = \text{Req}(h', r, \iota'') \texttt{::} E' \quad r = \text{Mapped}(\iota, h, r', p, \text{None}) \quad r' \neq \text{Mat}(\iota_s) \quad S(\iota) = \text{None} \\
+  loc(r') = \iota' \quad S(\iota') = \text{None} \\
+  E'' = \text{Req}(h, r', \iota') \texttt{::} E
+}
+{ 
+  (R[\texttt{await}(\iota_f)], E, S)^h \rightarrow (R[\texttt{await}(\iota_f)], E'', S)^h
+}
+\end{mathpar}
+\caption{Deterministic reduction.}
+\end{figure}
+
+\end{landscape}
+
+\newpage
+\begin{landscape}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Non-deterministic reduction.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{figure}[ht!]
+\begin{mathpar}
+\inferrule[\textsc{R-Send}]
+{
+  host(r) = h' \quad h' \neq h \quad i~\text{fresh} \\
+  \iota = (h, i) \quad m = \text{Req}(h, r, \iota)
+}
+{ 
+  \{ (R[\texttt{send}(r)], E, S)^h, (t, E', S')^{h'} \} \cup H \rightarrow \{ (R[\iota], E, S)^h, (t, E' \cdot m, S')^{h'} \} \cup H
+}
+
+\inferrule[\textsc{R-Req1}]
+{ 
+  E = \text{Req}(h', r, \iota') \texttt{::} E' \quad r = \text{Mat}(\iota) \\
+  S(\iota) = \text{Some}(v) \quad m = \text{Res}(\iota', v)
+}
+{ 
+  \{ (R[\texttt{await}(\iota_f)], E, S)^h, (t, E'', S')^{h'} \} \cup H \rightarrow \{ (R[\texttt{await}(\iota_f)], E', S)^h, (t, E'' \cdot m, S')^{h'} \} \cup H
+}
+
+\inferrule[\textsc{R-Req2}]
+{ 
+  E = \text{Req}(h', r, \iota') \texttt{::} E' \quad r = \text{Mapped}(\iota, h, r', p, \text{None}) \quad r' = \text{Mat}(\iota_s) \quad S(\iota) = \text{None} \\
+  S(\iota_s) = \text{Some}(v) \quad p(v) = v' \quad S' = S + (\iota \mapsto v') \quad m = \text{Res}(\iota', v')
+}
+{ 
+  \{ (R[\texttt{await}(\iota_f)], E, S)^h, (t, E'', S'')^{h'} \} \cup H \rightarrow \{ (R[\texttt{await}(\iota_f)], E', S')^h, (t, E'' \cdot m, S'')^{h'} \} \cup H
+}
+
+\inferrule[\textsc{R-Req3}]
+{ 
+  E = \text{Req}(h'', r, \iota'') \texttt{::} E'' \quad r = \text{FMapped}(\iota, h, \text{Mat}(\iota_s), p, \text{None}) \quad S(\iota) = \text{None} \quad S(\iota_s) = \text{Some}(v) \\
+  \quad p(v) = r' \quad loc(r') = \iota' \quad S(\iota') = \text{None} \quad host(r') = h' \quad m = \text{Req}(h, r', \iota') \quad E''' = \text{Req}(h'', r', \iota'') \texttt{::} E''
+}
+{ 
+  \{ (R[\texttt{await}(\iota_f)], E, S)^h, (t, E', S')^{h'} \} \cup H \rightarrow \{ (R[\texttt{await}(\iota_f)], E''', S)^h, (t, E' \cdot m, S')^{h'} \} \cup H
+}
+
+\inferrule[\textsc{R-Req4}]
+{ 
+  E = \text{Req}(h'', r, \iota'') \texttt{::} E'' \quad r = \text{FMapped}(\iota, h, \text{Mat}(\iota_s), p, \text{None}) \quad S(\iota) = \text{None} \quad S(\iota_s) = \text{Some}(v) \\
+  \quad p(v) = r' \quad loc(r') = \iota' \quad S(\iota') = \text{Some}(v') \quad S'' = S + (\iota \mapsto v') \quad m = \text{Res}(\iota'', v')
+}
+{ 
+  \{ (R[\texttt{await}(\iota_f)], E, S)^h, (t, E', S')^{h''} \} \cup H \rightarrow \{ (R[\texttt{await}(\iota_f)], E'', S'')^h, (t, E' \cdot m, S')^{h''} \} \cup H
+}
+
+\end{mathpar}
+\caption{Non-deterministic reduction.}
+\end{figure}
+
+\end{landscape}
+
+\newpage
+\begin{landscape}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Fault handling.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{figure}[ht!]
+\centering
+\begin{mathpar}
+
+\inferrule[\textsc{RF-Send}]
+{ 
+  host(r) = h' \quad h' \neq h \quad \text{failed}(h') \\
+  \quad i~\text{fresh} \quad \iota = (h, i) \quad S'' = S + (\iota \mapsto \bot)
+}
+{ 
+  \{ (R[\texttt{send}(r)], E, S)^h \} \cup H \rightarrow \{ (R[\iota], E, S'')^h \} \cup H
+}
+
+\inferrule[\textsc{RF-Req4}]
+{ 
+  E = \text{Req}(h'', r, \iota'') \texttt{::} E'' \quad r = \text{FMapped}(\iota, h, r'', p, \text{Some}(p_f)) \quad S(\iota) = \text{None} \\
+  loc(r'') = \iota_s \quad S(\iota_s) = \text{Some}(v) \quad p(v) = r' \quad \text{failed}(host(r')) \quad p_f(v) = r_f \quad host(r_f) = h_f \quad \lnot \text{failed}(h_f) \\
+  loc(r_f) = \iota_f \quad S(\iota_f) = \text{None} \quad m = \text{Req}(h, r_f, \iota_f) \quad E''' = \text{Req}(h'', r_f, \iota'') \texttt{::} E''
+}
+{ 
+  \{ (R[\texttt{await}(\iota_f)], E, S)^h, (t, E', S')^{h_f} \} \cup H \rightarrow \{ (R[\texttt{await}(\iota_f)], E''', S)^h, (t, E' \cdot m, S')^{h_f} \} \cup H
+}
+
+\inferrule[\textsc{RF-Req5}]
+{ 
+  E = \text{Req}(h'', r, \iota'') \texttt{::} E' \quad r = \text{FMapped}(\iota, h, r'', p, \text{None}) \quad S(\iota) = \text{None} \quad loc(r'') = \iota_s \quad S(\iota_s) = \text{Some}(v) \\
+  p(v) = r' \quad \text{failed}(host(r')) \quad i_p, i_a~\text{fresh} \quad \iota_p = (h, i_p), \iota_a = (h, i_a) \quad m_p = \text{ReqF}(h, r'', \iota_p) \\
+  r_a = \text{FMapped}(\iota_a, h, \text{Mat}(\iota_p), p, \text{None}) \quad E'' = m_p \texttt{::} \text{Req}(h'', r_a, \iota'') \texttt{::} E'
+}
+{ 
+  (R[\texttt{await}(\iota_f)], E, S)^h \longrightarrow (R[\texttt{await}(\iota_f)], E'', S)^h
+}
+
+\inferrule[\textsc{RF-ReqF}]
+{ 
+  E = \text{ReqF}(h, r, \iota') \texttt{::} E' \quad r = \text{Mapped}(\iota, h, r'', p, \text{Some}(p_f)) \\
+  loc(r'') = \iota_s \quad S(\iota_s) = \text{Some}(v) \quad E'' = \text{Res}(\iota', p_f(v)) \texttt{::} E'
+}
+{ 
+  (R[\texttt{await}(\iota_f)], E, S)^h \longrightarrow (R[\texttt{await}(\iota_f)], E'', S)^h
+}
+
+\end{mathpar}
+\caption{Fault handling.}
+\end{figure}
+
+\end{landscape}
+
+\end{document}
