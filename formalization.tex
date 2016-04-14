@@ -1,5 +1,7 @@
 \documentclass{article}
+\usepackage{todonotes}
 \usepackage{lscape}
+\usepackage{enumitem}
 \usepackage{amsmath}
 \usepackage{amsthm}
 \usepackage{amssymb}
@@ -9,10 +11,13 @@
 
 %% Math
 \theoremstyle{definition}
-\newmdtheoremenv[hidealllines=true,topline=true,bottomline=true,skipabove=\baselineskip,skipbelow=\baselineskip]{defn}{Definition}[section]
+\newtheorem{defn}{Definition}[section]
 
-\theoremstyle{definition}
-\newmdtheoremenv[hidealllines=true,topline=true,bottomline=true,skipabove=\baselineskip,skipbelow=\baselineskip]{prop}{Property}[section]
+%\theoremstyle{definition}
+%\newmdtheoremenv[hidealllines=true,topline=true,bottomline=true,skipabove=\baselineskip,skipbelow=\baselineskip]{defn}{Definition}[section]
+
+%\theoremstyle{definition}
+%\newmdtheoremenv[hidealllines=true,topline=true,bottomline=true,skipabove=\baselineskip,skipbelow=\baselineskip]{prop}{Property}[section]
 
 %% Spacing
 \newcommand{\gap}{\quad\quad}
@@ -27,6 +32,12 @@
 
 \begin{document}
 
+\todo[inline]{Turn into a typed calculus}
+\todo[inline]{Fix fault tolerance}
+\todo[inline]{Fix memory handling\\[2ex] IDEA: provide explicit operators for memory handling; a subsequent static analysis would augment those explicit declaration with further usage of those explicit operators; i.e., a static analysis yields a composition of those memory handling primitives\\[2ex] First approach: incorporate reference counting}
+
+\newpage
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % Core language abstract syntax.
@@ -37,68 +48,43 @@
 \centering
 
 $\ba[t]{l@{\hspace{2mm}}l}
-t ::=                                       & \mbox{{\it{terms:}}}
-\\
-\gap \:\:\:  x                              & \mbox{variable}
-\\
-\gap ~|~  (x: T) \Rightarrow t              & \mbox{abstraction}
-\\
-\gap ~|~  t~t                               & \mbox{application}
-\\
-\gap ~|~  \texttt{let}~x = t~\texttt{in}~t  & \mbox{let binding}
-\\
-\gap ~|~  \{ \seq{l = t} \}                 & \mbox{record construction}
-\\
-\gap ~|~  t.l                               & \mbox{selection}
-\\
-\gap ~|~  \texttt{spore}~\{~\seq{x : T = t}~; (x: T) \Rightarrow t~\}  & \mbox{spore}
-\\
-\gap ~|~  \texttt{map}(r, t[, t])           & \mbox{map}
-\\
-\gap ~|~  \texttt{flatMap}(r, t[, t])       & \mbox{flatMap}
-\\
-\gap ~|~  \texttt{send}(r)                  & \mbox{send}
-\\
-\gap ~|~  \texttt{await}(\iota)             & \mbox{await future}
-\\
-\gap ~|~  r                                 & \mbox{silo reference}
-\\
-\gap ~|~  \iota                             & \mbox{future}
-\\
-                                            &
-\\
-v ::=                                       & \mbox{{\it{values:}}}
-\\
-\gap \:\:\: (x: T) \Rightarrow t            & \mbox{abstraction value}
-\\
-\gap ~|~  \{ \seq{l = v} \}                 & \mbox{record value}
-\\
-\gap ~|~  p                                 & \mbox{spore value}
-\\
-\gap ~|~  r                                 & \mbox{silo reference}
-\\
-\gap ~|~  \iota                             & \mbox{future}
-\\
-p ::=     \texttt{spore}~\{~\seq{x : T = v}~; (x: T) \Rightarrow t~\}  & \mbox{spore value}
-\\
-                                            &
-\\
-T ::=                                       & \mbox{{\it{types:}}}
-\\
-\gap \:\:\: T \Rightarrow T                 & \mbox{function type}
-\\
-\gap ~|~  \{ \seq{l : T} \}                 & \mbox{record type}
-\\
-\gap ~|~  \mathcal{S}                       & \mbox{}
-\\
-\mathcal{S} ::= T \Rightarrow T~\{~\texttt{type}~\mathcal{C} = \seq{T}~\}   & \mbox{spore type}
-\\
-\gap ~|~  T \Rightarrow T~\{~\texttt{type}~\mathcal{C}~\}   & \mbox{abstract spore type}
-\\
+t ::=                                                                       & \mbox{{\it{terms:}}} \\                                
+\gap \:\:\:\:  x                                                            & \mbox{variable} \\                                
+\gap ~|~  (x: T) \Rightarrow t                                              & \mbox{abstraction} \\                                
+\gap ~|~  t~t                                                               & \mbox{application} \\                                
+\gap ~|~  \texttt{let}~x = t~\texttt{in}~t                                  & \mbox{let binding} \\                                
+\gap ~|~  \{ \seq{l = t} \}                                                 & \mbox{record construction} \\                                
+\gap ~|~  t.l                                                               & \mbox{selection} \\     
+\gap ~|~  \texttt{spore}~\{~\seq{x : T = t}~; (x: T) \Rightarrow t~\}       & \mbox{spore} \\     
+\gap ~|~  \texttt{map}(r, t[, t])                                           & \mbox{map} \\                          
+\gap ~|~  \texttt{flatMap}(r, t[, t])                                       & \mbox{flatMap} \\                          
+\gap ~|~  \texttt{send}(t)                                                  & \mbox{send} \\           % send  :: Ref a -> Fut a
+\gap ~|~  \texttt{await}(t)                                                 & \mbox{await future} \\   % await :: Fut a -> a                        
+\gap ~|~  r                                                                 & \mbox{silo reference} \\                          
+\gap ~|~  \iota                                                             & \mbox{future} \\     
+                                                                            & \\                                
+v ::=                                                                       & \mbox{{\it{values:}}} \\                                
+\gap \:\:\:\: (x: T) \Rightarrow t                                          & \mbox{abstraction value} \\                                
+\gap ~|~  \{ \seq{l = v} \}                                                 & \mbox{record value} \\                                
+\gap ~|~  p                                                                 & \mbox{spore value} \\                                
+\gap ~|~  r                                                                 & \mbox{silo reference} \\                                
+\gap ~|~  \iota                                                             & \mbox{future} \\     
+p ::=     \texttt{spore}~\{~\seq{x : T = v}~; (x: T) \Rightarrow t~\}       & \mbox{spore value} \\     
+                                                                            & \\                          
+T ::=                                                                       & \mbox{{\it{types:}}} \\                          
+\gap \:\:\:\: T \Rightarrow T                                               & \mbox{function type} \\                          
+\gap ~|~  \{ \seq{l : T} \}                                                 & \mbox{record type} \\                          
+\gap ~|~  \mathcal{S}                                                       & \mbox{} \\
+\mathcal{S} ::= T \Rightarrow T~\{~\texttt{type}~\mathcal{C} = \seq{T}~\}   & \mbox{spore type} \\
+\gap ~|~ T \Rightarrow T~\{~\texttt{type}~\mathcal{C}~\}                    & \mbox{abstract spore type} \\
 \ea$
 
-\caption{Core language abstract syntax.}
+\caption{Abstract syntax of core language.}
 \end{figure}
+
+Classification of $r$ and $\iota$ is specified at Figure~\ref{fig:elems-opsem}.
+
+\newpage
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -110,39 +96,89 @@ T ::=                                       & \mbox{{\it{types:}}}
 \centering
 
 $\ba[t]{l@{\hspace{2mm}}l}
-h \in Hosts                                      &
-\\
-i \in \mathbb{N}                                 &
-\\
-                                                 &
-\\
-\iota  ::=  (h, i)                               & \mbox{location}
-\\
-                                                 &
-\\
-r ::=     \text{Mat}(\iota)                      & \mbox{materialized}
-\\
-\gap ~|~  \text{Mapped}(\iota, h, r, p, opt_f)   & \mbox{lineage with \texttt{map}}
-\\
-\gap ~|~  \text{FMapped}(\iota, h, r, p, opt_f)  & \mbox{lineage with \texttt{flatMap}}
-\\
-                                                 &
-\\
-E      ::=  \epsilon                             & \mbox{message queue}
-\\
-\gap ~|~    \text{Res}(\iota, v) \texttt{::} E      & \mbox{response}
-\\
-\gap ~|~    \text{Req}(h, r, \iota) \texttt{::} E   & \mbox{request}
-\\
-\gap ~|~    \text{ReqF}(h, r, \iota) \texttt{::} E  & \mbox{request (fault)}
-\\
+h \in Hosts                                         & \\   
+i \in \mathbb{N}                                    & \\   
+                                                    & \\   
+\iota  ::=                                          & \mbox{{\it{future values:}}} \\
+\gap \:\:\: (h, i)                                  & \mbox{location} \\   
+                                                    & \\   
+r ::=                                               & \mbox{{\it{silo reference values:}}} \\
+\gap \:\:\:\: \text{Mat}(\iota)                     & \mbox{materialized} \\    
+\gap ~|~  \text{Mapped}(\iota, r, p, opt_f)         & \mbox{lineage with \texttt{map}} \\    
+\gap ~|~  \text{FMapped}(\iota, r, p, opt_f)        & \mbox{lineage with \texttt{flatMap}} \\   
+                                                    & \\   
+E      ::=                                          & \mbox{{\it{message queue values:}}} \\
+\gap \:\:\:\: \epsilon                              & \mbox{empty queue} \\
+\gap ~|~    \text{Res}(\iota, v) \texttt{::} E      & \mbox{response} \\
+\gap ~|~    \text{Req}(h, r, \iota) \texttt{::} E   & \mbox{request}  \\
+\gap ~|~    \text{ReqF}(h, r, \iota) \texttt{::} E  & \mbox{request (fault)} \\
 \ea$
 
 \caption{Elements of the operational model.}
+\label{fig:elems-opsem}
+
 \end{figure}
 
+\todo[inline]{Explain connection between `future`, `location`, and unique identifier.}
+
+\begin{description}
+\item[$Mat(\iota)$] A silo reference either materialized or to be materialized at location $\iota$.
+% In this case \iota gives us the location of the materialized silo.
+
+\item[$Mapped(\iota, r, p, opt_f)$] Map spore $p$ over the silo which is referenced by $r$. The resulting silo of this transformation is referenced by the new silo reference identified by $\iota$. In case of failure at the host of the referenced silo apply $opt_f$.  
+
+%      r     --> s  @ host(r)
+%                ^
+%                |
+%                | Mapped
+%                |
+%      r'    --> s' @ host(r) = host(r')
+%
+% Decentralized identifier of r' is \iota.
+
+\item[$FMapped(\iota, r, p, opt_f)$] Analogous to $Mapped$.
+\end{description}
+
+A lineage build up by those silo reference values can be considered as a {\emph{data flow graph}}\cite{???}. %Note, verbalisation is imperative to emphasize lazy creation. 
+
+\begin{description}
+\item[$Res(\iota, v)$] A response message which instructs the receiver to complete future $\iota$ with value $v$.
+
+\item[$Req(h, r, \iota)$] A request message from $h$ which instructs the receiver to respond with the materialized silo referenced by $r$; $\iota$ uniquely identifies the response in terms of the future ($\iota$) to be completed by the sender of the request.
+
+\item[$ReqF(h, r, \iota)$] Analogous to $Req$.
+\end{description}
+
+In the following we introduce a function to backtrack the host of a referenced silo.
+
+\begin{defn}[Host]
+  The function application $host(r)$ obtains the host of the silo referenced by $r$; $host$ is defined as follows:
+  
+  $host(r) := \begin{cases}
+    h        & \text{if } r = Mat((h, i)) \\
+    host(r') & \text{if } r = Mapped(\_, r', \_, \_) \\
+    host(r') & \text{if } r = FMapped(\_, r', \_, \_) \\
+    \end{cases}$
+\end{defn}
+
+Analogous to~\cite{TAPL}, we introduce the notion of an evaluation context, ...
+
+\begin{defn}[Evaluation Context]
+  The set of evaluation contexts is defined as follows:
+  
+ $\ba[t]{l@{\hspace{2mm}}l}
+E ::=              & \mbox{\it{evaluation contexts:}} \\
+\gap \:\:\:\: [~]  & \mbox{hole} \\
+\gap ~|~  E~t      & \mbox{application (fun)} \\
+\gap ~|~  v~E      & \mbox{application (arg)} \\
+\gap ~|~  \texttt{let}~x = E~\texttt{in}~t  & \mbox{let (bind)} \\
+\gap ~|~  \texttt{let}~x = v~\texttt{in}~E  & \mbox{let (body)} \\
+\gap ~|~  \{ \seq{l = v} ; l_i = E ; \seq{l' = t} \}  & \mbox{record} \\
+\gap ~|~  E.l  & \mbox{selection} \\
+\ea$
+\end{defn}
+
 \newpage
-\begin{landscape}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -152,9 +188,10 @@ E      ::=  \epsilon                             & \mbox{message queue}
 
 \begin{figure}[ht!]
 \centering
+
 \begin{mathpar}
 \inferrule[\textsc{R-Map}]
-{
+{ 
   host(r) = h' \quad i~\text{fresh} \\
   r' = \text{Mapped}((h, i), h', r, p, \text{None})
 }
@@ -200,10 +237,19 @@ E      ::=  \epsilon                             & \mbox{message queue}
 \caption{Deterministic reduction.}
 \end{figure}
 
-\end{landscape}
+\begin{description}[font=\normalfont\itshape\space]
+\item[\textsc{R-Map}] ...
+
+\item[\textsc{R-FMap}] ...
+
+\item[\textsc{R-Await}] ...
+
+\item[\textsc{R-Res}] ...
+
+\item[\textsc{R-ReqLocal}] ...
+\end{description}
 
 \newpage
-\begin{landscape}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -262,10 +308,19 @@ E      ::=  \epsilon                             & \mbox{message queue}
 \caption{Non-deterministic reduction.}
 \end{figure}
 
-\end{landscape}
+\begin{description}[font=\normalfont\itshape\space]
+\item[\textsc{R-Send}] ...
+
+\item[\textsc{R-Req1}] ...
+
+\item[\textsc{R-Req2}] ...
+
+\item[\textsc{R-Req3}] ...
+
+\item[\textsc{R-Req4}] ...
+\end{description}
 
 \newpage
-\begin{landscape}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -319,6 +374,14 @@ E      ::=  \epsilon                             & \mbox{message queue}
 \caption{Fault handling.}
 \end{figure}
 
-\end{landscape}
+\begin{description}[font=\normalfont\itshape\space]
+\item[\textsc{RF-Send}] ...
+
+\item[\textsc{RF-Req4}] XXX Why $4$?
+
+\item[\textsc{RF-Req5}] ...
+
+\item[\textsc{R-ReqF}] ...
+\end{description}
 
 \end{document}
