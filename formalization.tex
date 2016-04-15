@@ -58,7 +58,7 @@ t ::=                                                                       & \m
 \gap ~|~  \texttt{spore}~\{~\seq{x : T = t}~; (x: T) \Rightarrow t~\}       & \mbox{spore} \\     
 \gap ~|~  \texttt{map}(r, t[, t])                                           & \mbox{map} \\                          
 \gap ~|~  \texttt{flatMap}(r, t[, t])                                       & \mbox{flatMap} \\                          
-\gap ~|~  \texttt{send}(t)                                                  & \mbox{send} \\           % send  :: Ref a -> Fut a // returns \iota
+\gap ~|~  \texttt{send}(t)                                                  & \mbox{send} \\           % send  :: Ref a -> Fut a
 \gap ~|~  \texttt{await}(t)                                                 & \mbox{await future} \\   % await :: Fut a -> a                        
 \gap ~|~  r                                                                 & \mbox{silo reference} \\                          
 \gap ~|~  \iota                                                             & \mbox{future} \\     
@@ -100,7 +100,7 @@ h \in Hosts                                         & \\
 i \in \mathbb{N}                                    & \\   
                                                     & \\   
 \iota  ::=                                          & \mbox{{\it{future values:}}} \\
-\gap \:\:\: (h, i)                                  & \mbox{location} \\   
+\gap \:\:\: (h, i)                                  & \mbox{decentralized identifier} \\   
                                                     & \\   
 r ::=                                               & \mbox{{\it{silo reference values:}}} \\
 \gap \:\:\:\: \text{Mat}(\iota)                     & \mbox{materialized} \\    
@@ -120,37 +120,33 @@ Q      ::=                                          & \mbox{{\it{message queue v
 \end{figure}
 
 \begin{description}
-\item[$\iota$] Encodes latency, in terms of completion of a materialization of a
-  silo, as well as the location of the either already materialized or to be
-    materialized silo. The location, in turn, serves as the unique,
-    decentralized identifier of the respective silo reference.
-
+\item[$\iota$] Encodes latency, in terms of completion of a materialization of a silo, as well as the location of the either already materialized or to be materialized silo. The location, in turn, serves as the unique, decentralized identifier of the respective silo reference.
 
 % << Network communication >>
-% val r0: SiloRef[List[Vehicle]] = Silo.fromTextFile(h)("hdfs://...")  ~~> Mat((h,0))
-% r0.id    == (h,0)                                                         ^
-% host(r0) == h                                                             |
-%                                                                           |
-% << No network communication >>                                            |
-% val r1: SiloRef[List[Vehicle]] = r0 map sp0                          ~~> Mapped((h,1), r0, sp0, None)
-% r1.id    == (h,1)
-% host(r1) == h
 %
-% << Network communication >>
-% val r2: SiloRef[List[Vehicle]] = Silo.fromTextFile(h)("hdfs://...")  ~~> Mat(???)
-% r2.id    ==
-% host(r2) == 
+%               <<CODE>>                                                    << LINEAGE>>                             <<SILO>>
+% Host: h0    
+% val r0: SiloRef[List[Vehicle]] = Silo.fromTextFile(h1)("hdfs://foo")  ~~>   Mat((h1,0))                   ~~>        h1 
+% r0.id    == (h1,0)                                                              ^
+% host(r0) == h1                                                                  |
+%                                                                                 |
+% << No network communication >>                                                  |
+%                                                                                 |
+% val r1: SiloRef[List[Vehicle]] = r0 map sp0                           ~~>   Mapped((h0,0), r0, sp0, None) ~~>        h1
+% r1.id    == (h0,0)      
+% host(r1) == h1      
+%   
+% << Network communication >>   
+%   
+% val r2: SiloRef[List[Vehicle]] = Silo.fromTextFile(h1)("hdfs://foo")  ~~>   Mat((h1,0))
+% r2.id    == (h1,0)
+% host(r2) == h1 
+% r2       == r0
 
+\item[$Mat(\iota)$] A silo reference where the referenced silo is already materialized, or is to be materialized, at location $\iota$.
+% In this case \iota gives us the location of the materialized silo.
 
-\item[$Mat(\iota)$] A silo reference where the referenced silo is already
-  materialized, or is to be materialized, at location $\iota$.
-  % In this case \iota gives us the location of the materialized silo.
-
-\item[$Mapped(\iota, r, p, opt_f)$] Map spore $p$ over the silo which is
-  referenced by $r$. The resulting silo of this transformation is referenced by
-    the new silo reference identified by $\iota$. In case of failure at the host
-    of the referenced silo apply $opt_f$. % Clearly, \iota is the identifier of
-    the new silo reference.
+\item[$Mapped(\iota, r, p, opt_f)$] Map spore $p$ over the silo which is referenced by $r$. The resulting silo of this transformation is referenced by the new silo reference identified by $\iota$. In case of failure at the host of the referenced silo apply $opt_f$.  
 
 %      r     --> s  @ host(r)
 %                ^
@@ -164,28 +160,20 @@ Q      ::=                                          & \mbox{{\it{message queue v
 \item[$FMapped(\iota, r, p, opt_f)$] Analogous to $Mapped$.
 \end{description}
 
-A lineage build up by those silo reference values can be considered as a
-{\emph{data flow graph}}\cite{???}.
-% Note, verbalisation is imperative to emphasize lazy creation. 
+A lineage build up by those silo reference values can be considered as a {\emph{data flow graph}}\cite{???}. %Note, verbalisation is imperative to emphasize lazy creation. 
 
 \begin{description}
-\item[$Res(\iota, v)$] A response message which instructs the receiver to
-  complete future $\iota$ with value $v$.
+\item[$Res(\iota, v)$] A response message which instructs the receiver to complete future $\iota$ with value $v$.
 
-\item[$Req(h, r, \iota)$] A request message from $h$ which instructs the
-  receiver to respond with the materialized silo referenced by $r$; $\iota$
-    uniquely identifies the response in terms of the future $\iota$ to be
-    completed by the sender of the request.
+\item[$Req(h, r, \iota)$] A request message from $h$ which instructs the receiver to respond with the materialized silo referenced by $r$; $\iota$ uniquely identifies the response in terms of the future $\iota$ to be completed by the sender of the request.
 
 \item[$ReqF(h, r, \iota)$] Analogous to $Req$.
 \end{description}
 
-In the following we introduce a function to backtrack the host of a referenced
-silo.
+In the following we introduce a function to backtrack the host of a referenced silo.
 
 \begin{defn}[Host]
-  The function application $host(r)$ obtains the host of the silo referenced by
-  $r$; $host$ is defined as follows:
+  The function application $host(r)$ obtains the host of the silo referenced by $r$; $host$ is defined as follows:
   
   $host(r) := \begin{cases}
     h        & \text{if } r = Mat((h, i)) \\
@@ -194,9 +182,7 @@ silo.
     \end{cases}$
 \end{defn}
 
-Analogous to~\cite{TAPL}, we introduce the notion of an evaluation context and
-write $E[t]$ for the ordinary term obtained by replacing the hole in $E$ with
-$t$.
+Analogous to~\cite{TAPL}, we introduce the notion of an evaluation context and write $E[t]$ for the ordinary term obtained by replacing the hole in $E$ with $t$.
 
 \begin{defn}[Evaluation Context]
   The set of evaluation contexts is defined as follows:
@@ -213,11 +199,19 @@ E ::=                                                                           
 \gap ~|~  \texttt{spore}~\{~\seq{x : T = v} ; x_i : T_i = E ; \seq{x' : T = t} ; (x: T) \Rightarrow t~\}  & \mbox{spore} \\
 \gap ~|~  \texttt{map}(E, t[, t])                                                                         & \mbox{map (ref)} \\
 \gap ~|~  \texttt{map}(v, E[, t])                                                                         & \mbox{map (fun)} \\
-\gap ~|~  \texttt{map}(v, v'[, E])                                                                        & \mbox{map (err)} \\
+\gap ~|~  \texttt{map}(v, v', E)                                                                        & \mbox{map (err)} \\
 \gap ~|~  \texttt{flatMap}(E, t[, t])                                                                     & \mbox{flatMap (ref)} \\
 \gap ~|~  \texttt{flatMap}(v, E[, t])                                                                     & \mbox{flatMap (fun)} \\
-\gap ~|~  \texttt{flatMap}(v, v'[, E])                                                                    & \mbox{flatMap (err)} \\
+\gap ~|~  \texttt{flatMap}(v, v', E)                                                                    & \mbox{flatMap (err)} \\
 \ea$ 
+\end{defn}
+
+\begin{defn}[Silo reference identifier]
+    $id(r) := \begin{cases}
+    \iota  & \text{if } r = Mat(\iota) \\
+    \iota  & \text{if } r = Mapped(\iota, r', \_, \_) \\
+    \iota  & \text{if } r = FMapped(\iota, r', \_, \_) \\
+    \end{cases}$
 \end{defn}
 
 \newpage
@@ -228,53 +222,91 @@ E ::=                                                                           
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+Our formalization simplifies the computation model with respect to
+materialized silos. In case of a silo reference of the form $Mat(\iota)$
+we assume that there is a mapping in the corresponding silo store $S$,
+such that $S(\iota) = \text{Some}(v)$ for some value $v$.
+
 \begin{figure}[ht!]
 \centering
 
 \begin{mathpar}
-\inferrule[\textsc{R-Map}]
-{ 
-  host(r) = h \quad i~\text{fresh} \quad r' = \text{Mapped}((h, i), r, p, \text{None}) 
-}
-{ 
+\inferrule[\textsc{R-Map}] { 
+  r' = \text{Mapped}((h, i), r, p, \text{None}) \quad i~\text{fresh}
+} { 
   (E[\texttt{map}(r, p)], Q, S)^h \longrightarrow (E[r'], Q, S)^h
 }
 
-\inferrule[\textsc{R-FMap}]
-{ 
-  host(r) = h \quad i~\text{fresh} \quad r' = \text{FMapped}((h, i), r, p, \text{None})
-}
-{ 
+\inferrule[\textsc{R-FMap}] { 
+  r' = \text{FMapped}((h, i), r, p, \text{None}) \quad i~\text{fresh}
+} { 
   (E[\texttt{flatMap}(r, p)], Q, S)^h \longrightarrow (E[r'], Q, S)^h
 }
 
-\inferrule[\textsc{R-Await}]
-{
+\inferrule[\textsc{R-Await}] {
   S(\iota) = \text{Some}(v)
-}
-{
+} {
   (E[\texttt{await}(\iota)], Q, S)^h \longrightarrow (E[v], Q, S)^h
 }
 
-\inferrule[\textsc{R-Res}]
-{
+\inferrule[\textsc{R-Res}] {
   Q = \text{Res}(\iota, v) \texttt{::} Q' \quad S' = S + (\iota \mapsto v)
-}
-{
-  (E[\texttt{await}(\iota_f)], Q, S)^h \longrightarrow (E[\texttt{await}(\iota_f)], Q', S')^h
+} {
+  (E[\texttt{await}(\iota')], Q, S)^h \longrightarrow (E[\texttt{await}(\iota')], Q', S')^h
 }
 
-\inferrule[\textsc{R-ReqLocal}]
-{
-  Q        = \text{Req}(h', r, \iota'') \texttt{::} Q'    \quad %
-  r        = \text{Mapped}(\iota, r', p, \text{None})     \quad %
-  r'     \neq \text{Mat}(\iota_s)                         \\ %\quad %
-  S(\iota) = \text{None}                                  \\
-  loc(r')  = \iota' \quad S(\iota') = \text{None}         \\ % XXX
-  Q''      = \text{Req}(h, r', \iota') \texttt{::} Q
+\inferrule[\textsc{R-Req1Local}] {
+  Q         = \text{Req}(h, r, \iota) :: Q' \quad %
+  S(id(r))  = \text{Some}(v)                \quad %
+  S'        = S + (\iota \mapsto v)
+} {
+  (E[\texttt{await}(\iota')], Q, S)^h \rightarrow
+  (E[\texttt{await}(\iota')], Q', S')^h
 }
-{ 
-  (E[\texttt{await}(\iota_f)], Q, S)^h \rightarrow (E[\texttt{await}(\iota_f)], Q'', S)^h
+
+\inferrule[\textsc{R-Req2Local}] {
+  Q          = \text{Req}(h, r, \iota) :: Q'     \quad %
+  r          = \text{Mapped}(\iota', r', p, \text{None})  \quad %
+  % we know: S(\iota') = None
+  S(id(r'))  = \text{Some}(v) \\
+  v'         = p(v)  \quad %
+  S'         = S  + (\iota' \mapsto v')  \quad %
+  S''        = S' + (\iota  \mapsto v')
+} {
+  (E[\texttt{await}(\iota'')], Q,  S)^h \rightarrow
+  (E[\texttt{await}(\iota'')], Q', S'')^h
+}
+
+\inferrule[\textsc{R-Req3Local}] {
+  Q          = \text{Req}(h, r, \iota) :: Q'     \quad %
+  r          = \text{Mapped}(\iota', r', p, \text{None})  \quad %
+  % we know: S(\iota') = None
+  S(id(r'))  = \text{None} \\
+  m          = \text{Req}(h, r', id(r'))
+} {
+  (E[\texttt{await}(\iota'')], Q, S)^h \rightarrow
+  (E[\texttt{await}(\iota'')], m :: Q, S)^h
+}
+
+\inferrule[\textsc{R-Req4Local}] {
+  Q          = \text{Req}(h, r, \iota) :: Q'     \quad %
+  r          = \text{FMapped}(\iota', r', p, \text{None})  \quad %
+  % we know: S(\iota') = None
+  S(id(r'))  = \text{Some}(v) \\
+  r''        = p(v)  \quad %
+  host(r'')  = h     \quad %
+  m          = \text{Req}(h, r'', \iota')
+} {
+  (E[\texttt{await}(\iota'')], Q, S)^h \rightarrow
+  (E[\texttt{await}(\iota'')], m :: Q, S)^h
+}
+
+\inferrule[\textsc{R-SendLocal}] {
+  host(r) = h \quad i~\text{fresh} \quad
+  \iota = (h, i) \quad m = \text{Req}(h, r, \iota)
+} {
+  (E[\texttt{send}(r)], Q, S)^h \rightarrow
+  (E[\iota], Q \cdot m, S)^h
 }
 \end{mathpar}
 \caption{Deterministic reduction.}
@@ -292,8 +324,7 @@ E ::=                                                                           
 \item[\textsc{R-ReqLocal}] ...
 \end{description}
 
-Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve
-communication with other hosts.
+Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve communication with other hosts.
 
 \newpage
 
@@ -305,48 +336,41 @@ communication with other hosts.
 
 \begin{figure}[ht!]
 \begin{mathpar}
-\inferrule[\textsc{R-Send}]
-{
+\inferrule[\textsc{R-Send}] {
   host(r) = h' \quad h' \neq h \quad i~\text{fresh} \\
   \iota = (h, i) \quad m = \text{Req}(h, r, \iota)
-}
-{ 
-  \{ (R[\texttt{send}(r)], E, S)^h, (t, E', S')^{h'} \} \cup H \rightarrow \{ (R[\iota], E, S)^h, (t, E' \cdot m, S')^{h'} \} \cup H
-}
-
-\inferrule[\textsc{R-Req1}]
-{ 
-  E = \text{Req}(h', r, \iota') \texttt{::} E' \quad r = \text{Mat}(\iota) \\
-  S(\iota) = \text{Some}(v) \quad m = \text{Res}(\iota', v)
-}
-{ 
-  \{ (R[\texttt{await}(\iota_f)], E, S)^h, (t, E'', S')^{h'} \} \cup H \rightarrow \{ (R[\texttt{await}(\iota_f)], E', S)^h, (t, E'' \cdot m, S')^{h'} \} \cup H
+} { 
+  \{ (E[\texttt{send}(r)], Q, S)^h, (t, Q', S')^{h'} \} \cup H \twoheadrightarrow
+  \{ (E[\iota], Q, S)^h, (t, Q' \cdot m, S')^{h'} \} \cup H
 }
 
-\inferrule[\textsc{R-Req2}]
-{ 
+\inferrule[\textsc{R-Req1}] { 
+  Q = \text{Req}(h', r, \iota) :: Q' \quad
+  S(id(r)) = \text{Some}(v) \quad
+  m = \text{Res}(\iota, v)
+} { 
+  \{ (E[\texttt{await}(\iota')], Q, S)^h, (t, Q'', S')^{h'} \} \cup H \twoheadrightarrow
+  \{ (E[\texttt{await}(\iota')], Q', S)^h, (t, Q'' \cdot m, S')^{h'} \} \cup H
+}
+
+\inferrule[\textsc{R-Req2}] { 
   E = \text{Req}(h', r, \iota') \texttt{::} E' \quad r = \text{Mapped}(\iota, h, r', p, \text{None}) \quad r' = \text{Mat}(\iota_s) \quad S(\iota) = \text{None} \\
   S(\iota_s) = \text{Some}(v) \quad p(v) = v' \quad S' = S + (\iota \mapsto v') \quad m = \text{Res}(\iota', v')
-}
-{ 
+} { 
   \{ (R[\texttt{await}(\iota_f)], E, S)^h, (t, E'', S'')^{h'} \} \cup H \rightarrow \{ (R[\texttt{await}(\iota_f)], E', S')^h, (t, E'' \cdot m, S'')^{h'} \} \cup H
 }
 
-\inferrule[\textsc{R-Req3}]
-{ 
+\inferrule[\textsc{R-Req3}] { 
   E = \text{Req}(h'', r, \iota'') \texttt{::} E'' \quad r = \text{FMapped}(\iota, h, \text{Mat}(\iota_s), p, \text{None}) \quad S(\iota) = \text{None} \quad S(\iota_s) = \text{Some}(v) \\
   \quad p(v) = r' \quad loc(r') = \iota' \quad S(\iota') = \text{None} \quad host(r') = h' \quad m = \text{Req}(h, r', \iota') \quad E''' = \text{Req}(h'', r', \iota'') \texttt{::} E''
-}
-{ 
+} { 
   \{ (R[\texttt{await}(\iota_f)], E, S)^h, (t, E', S')^{h'} \} \cup H \rightarrow \{ (R[\texttt{await}(\iota_f)], E''', S)^h, (t, E' \cdot m, S')^{h'} \} \cup H
 }
 
-\inferrule[\textsc{R-Req4}]
-{ 
+\inferrule[\textsc{R-Req4}] { 
   E = \text{Req}(h'', r, \iota'') \texttt{::} E'' \quad r = \text{FMapped}(\iota, h, \text{Mat}(\iota_s), p, \text{None}) \quad S(\iota) = \text{None} \quad S(\iota_s) = \text{Some}(v) \\
   \quad p(v) = r' \quad loc(r') = \iota' \quad S(\iota') = \text{Some}(v') \quad S'' = S + (\iota \mapsto v') \quad m = \text{Res}(\iota'', v')
-}
-{ 
+} { 
   \{ (R[\texttt{await}(\iota_f)], E, S)^h, (t, E', S')^{h''} \} \cup H \rightarrow \{ (R[\texttt{await}(\iota_f)], E'', S'')^h, (t, E' \cdot m, S')^{h''} \} \cup H
 }
 
