@@ -144,7 +144,7 @@ Q      ::=                                          & \mbox{{\it{message queue v
 % r2       == r0
 
 \item[$Mat(\iota)$] A silo reference where the referenced silo is already materialized, or is to be materialized, at location $\iota$.
-% In this case \iota gives us the location of the materialized silo.
+% (h,i) is the decentralized identifier of the materialized silo hosted at h. In this case \iota gives us the location of the materialized silo.
 
 \item[$Mapped(\iota, r, p, opt_f)$] Map spore $p$ over the silo which is referenced by $r$. The resulting silo of this transformation is referenced by the new silo reference identified by $\iota$. In case of failure at the host of the referenced silo apply $opt_f$.  
 
@@ -199,10 +199,10 @@ E ::=                                                                           
 \gap ~|~  \texttt{spore}~\{~\seq{x : T = v} ; x_i : T_i = E ; \seq{x' : T = t} ; (x: T) \Rightarrow t~\}  & \mbox{spore} \\
 \gap ~|~  \texttt{map}(E, t[, t])                                                                         & \mbox{map (ref)} \\
 \gap ~|~  \texttt{map}(v, E[, t])                                                                         & \mbox{map (fun)} \\
-\gap ~|~  \texttt{map}(v, v', E)                                                                        & \mbox{map (err)} \\
+\gap ~|~  \texttt{map}(v, v', E)                                                                          & \mbox{map (err)} \\
 \gap ~|~  \texttt{flatMap}(E, t[, t])                                                                     & \mbox{flatMap (ref)} \\
 \gap ~|~  \texttt{flatMap}(v, E[, t])                                                                     & \mbox{flatMap (fun)} \\
-\gap ~|~  \texttt{flatMap}(v, v', E)                                                                    & \mbox{flatMap (err)} \\
+\gap ~|~  \texttt{flatMap}(v, v', E)                                                                      & \mbox{flatMap (err)} \\
 \ea$ 
 \end{defn}
 
@@ -222,66 +222,77 @@ E ::=                                                                           
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% Define silo store
+
+We write $S' = S + (\iota \mapsto (v, C))$ to express the fact that $S'$ maps $\iota$ to a pair $(v, C)$ and otherwise agrees with $S$; $v$ is the value stored in the silo and $C$ is a mapping from $Hosts$ to $\mathbb{N}$, denoting the per-host usage count of silo $\iota$. We write $S(\iota) = \text{Some}(v, C)$ to express the fact that $S$ maps $\iota$ to $(v, C)$. We write $S(\iota) = \text{None}$ if $S$ does not have a mapping for $\iota$. 
+
 Our formalization simplifies the computation model with respect to
-materialized silos. In case of a silo reference of the form $Mat(\iota)$
+materialized silos. In case of a silo reference of the form $Mat((h, i))$
 we assume that there is a mapping in the corresponding silo store $S$,
-such that $S(\iota) = \text{Some}(v)$ for some value $v$.
+such that $S((h, i)) = \text{Some}(v, \{ h \mapsto 1 \})$ for some value $v$.
 
 \begin{figure}[ht!]
 \centering
 
 \begin{mathpar}
 \inferrule[\textsc{R-Map}] { 
-  r' = \text{Mapped}((h, i), r, p, \text{None}) \quad i~\text{fresh}
+  r' = \text{Mapped}((h, i), r, p, \text{None}) \quad
+  i~\text{fresh}
 } { 
-  (E[\texttt{map}(r, p)], Q, S)^h \longrightarrow (E[r'], Q, S)^h
+  (E[\texttt{map}(r, p)], Q, S)^h
+  \longrightarrow
+  (E[r'], Q, S)^h
 }
 
 \inferrule[\textsc{R-FMap}] { 
-  r' = \text{FMapped}((h, i), r, p, \text{None}) \quad i~\text{fresh}
+  r' = \text{FMapped}((h, i), r, p, \text{None}) \quad
+  i~\text{fresh}
 } { 
-  (E[\texttt{flatMap}(r, p)], Q, S)^h \longrightarrow (E[r'], Q, S)^h
+  (E[\texttt{flatMap}(r, p)], Q, S)^h
+  \longrightarrow
+  (E[r'], Q, S)^h
 }
 
 \inferrule[\textsc{R-Await}] {
-  S(\iota) = \text{Some}(v)
+  S(\iota) = \text{Some}(v, C)
 } {
   (E[\texttt{await}(\iota)], Q, S)^h \longrightarrow (E[v], Q, S)^h
 }
 
 \inferrule[\textsc{R-Res}] {
-  Q = \text{Res}(\iota, v) \texttt{::} Q' \quad S' = S + (\iota \mapsto v)
+  Q = \text{Res}(\iota, v) :: Q' \quad S' = S + (\iota \mapsto (v, \emptyset))  % default: persist only for a single usage
 } {
   (E[\texttt{await}(\iota')], Q, S)^h \longrightarrow (E[\texttt{await}(\iota')], Q', S')^h
 }
 
 \inferrule[\textsc{R-Req1Local}] {
   Q         = \text{Req}(h, r, \iota) :: Q' \quad %
-  S(id(r))  = \text{Some}(v)                \quad %
-  S'        = S + (\iota \mapsto v)
+  S(id(r))  = \text{Some}(v, C)             \quad %
+  S'        = S + (\iota \mapsto (v, \emptyset))
 } {
   (E[\texttt{await}(\iota')], Q, S)^h \rightarrow
   (E[\texttt{await}(\iota')], Q', S')^h
 }
 
 \inferrule[\textsc{R-Req2Local}] {
-  Q          = \text{Req}(h, r, \iota) :: Q'     \quad %
+  Q          = \text{Req}(h, r, \iota) :: Q'              \quad %
   r          = \text{Mapped}(\iota', r', p, \text{None})  \quad %
   % we know: S(\iota') = None
-  S(id(r'))  = \text{Some}(v) \\
-  v'         = p(v)  \quad %
-  S'         = S  + (\iota' \mapsto v')  \quad %
-  S''        = S' + (\iota  \mapsto v')
+  S(id(r'))  = \text{Some}(v, C)                          \\
+  v'         = p(v)                                       \quad %
+  S(id(r'))  = \text{Some}(v, C[h \mapsto C(h) - 1])      \\ %
+  S'         = S  + (\iota' \mapsto (v', \{ h \mapsto 1 \}))      \quad %
+  S''        = S' + (\iota  \mapsto (v', \{ h \mapsto 1 \}))
 } {
   (E[\texttt{await}(\iota'')], Q,  S)^h \rightarrow
   (E[\texttt{await}(\iota'')], Q', S'')^h
 }
 
 \inferrule[\textsc{R-Req3Local}] {
-  Q          = \text{Req}(h, r, \iota) :: Q'     \quad %
+  Q          = \text{Req}(h, r, \iota) :: Q'              \quad %
   r          = \text{Mapped}(\iota', r', p, \text{None})  \quad %
   % we know: S(\iota') = None
-  S(id(r'))  = \text{None} \\
+  S(id(r'))  = \text{None}                                \\
   m          = \text{Req}(h, r', id(r'))
 } {
   (E[\texttt{await}(\iota'')], Q, S)^h \rightarrow
@@ -289,12 +300,12 @@ such that $S(\iota) = \text{Some}(v)$ for some value $v$.
 }
 
 \inferrule[\textsc{R-Req4Local}] {
-  Q          = \text{Req}(h, r, \iota) :: Q'     \quad %
+  Q          = \text{Req}(h, r, \iota) :: Q'               \quad %
   r          = \text{FMapped}(\iota', r', p, \text{None})  \quad %
   % we know: S(\iota') = None
-  S(id(r'))  = \text{Some}(v) \\
-  r''        = p(v)  \quad %
-  host(r'')  = h     \quad %
+  S(id(r'))  = \text{Some}(v)                              \\
+  r''        = p(v)                                        \quad %
+  host(r'')  = h                                           \quad %
   m          = \text{Req}(h, r'', \iota')
 } {
   (E[\texttt{await}(\iota'')], Q, S)^h \rightarrow
@@ -302,7 +313,7 @@ such that $S(\iota) = \text{Some}(v)$ for some value $v$.
 }
 
 \inferrule[\textsc{R-SendLocal}] {
-  host(r) = h \quad i~\text{fresh} \quad
+  host(r) = h \quad i~\text{fresh}                  \quad
   \iota = (h, i) \quad m = \text{Req}(h, r, \iota)
 } {
   (E[\texttt{send}(r)], Q, S)^h \rightarrow
@@ -334,6 +345,28 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%
+% (t, Q, S)^h_c -> <crash>
+% H' = { h' | h \in H \land h' = crashed(h_c, h) }
+% --------------------------------------------------
+%    { (t, Q, S)^h_c } \cup H -->> H'
+%
+%
+% update silo store to reflect crash of h_c
+% S' = { id -> (v, C') | id -> (v, C) \in S \land C' = C[h_c -> 0] }
+% ---------------------------------------------------------------------
+%    crashed(h_c, (t, Q, S)^h) = (t, Q, S')^h
+%
+%
+%   S(id) =  Some(v)       |  None
+%
+%   S(id) = (Some(v), cnt) | (None, cnt)
+%
+%   S(id) = (Some(v), [h -> 3, h' -> 2]) | (None, ...)
+%
+%   S(id) = (Some(v), C)   | (None, C)
+
+
 \begin{figure}[ht!]
 \begin{mathpar}
 \inferrule[\textsc{R-Send}] {
@@ -346,7 +379,7 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
 
 \inferrule[\textsc{R-Req1}] { 
   Q = \text{Req}(h', r, \iota) :: Q' \quad
-  S(id(r)) = \text{Some}(v) \quad
+  S(id(r)) = \text{Some}(v)          \quad
   m = \text{Res}(\iota, v)
 } { 
   \{ (E[\texttt{await}(\iota')], Q, S)^h, (t, Q'', S')^{h'} \} \cup H \twoheadrightarrow
@@ -354,24 +387,47 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
 }
 
 \inferrule[\textsc{R-Req2}] { 
-  E = \text{Req}(h', r, \iota') \texttt{::} E' \quad r = \text{Mapped}(\iota, h, r', p, \text{None}) \quad r' = \text{Mat}(\iota_s) \quad S(\iota) = \text{None} \\
-  S(\iota_s) = \text{Some}(v) \quad p(v) = v' \quad S' = S + (\iota \mapsto v') \quad m = \text{Res}(\iota', v')
+  E = \text{Req}(h', r, \iota') :: E'             \quad
+  r = \text{Mapped}(\iota, h, r', p, \text{None}) \quad
+  r' = \text{Mat}(\iota_s)                        \quad
+  S(\iota) = \text{None}                          \\
+  S(\iota_s) = \text{Some}(v)                     \quad
+  p(v) = v'                                       \quad
+  S' = S + (\iota \mapsto v')                     \quad
+  m = \text{Res}(\iota', v')
 } { 
-  \{ (R[\texttt{await}(\iota_f)], E, S)^h, (t, E'', S'')^{h'} \} \cup H \rightarrow \{ (R[\texttt{await}(\iota_f)], E', S')^h, (t, E'' \cdot m, S'')^{h'} \} \cup H
+  \{ (R[\texttt{await}(\iota_f)], E, S)^h, (t, E'', S'')^{h'} \} \cup H \twoheadrightarrow
+  \{ (R[\texttt{await}(\iota_f)], E', S')^h, (t, E'' \cdot m, S'')^{h'} \} \cup H
 }
 
 \inferrule[\textsc{R-Req3}] { 
-  E = \text{Req}(h'', r, \iota'') \texttt{::} E'' \quad r = \text{FMapped}(\iota, h, \text{Mat}(\iota_s), p, \text{None}) \quad S(\iota) = \text{None} \quad S(\iota_s) = \text{Some}(v) \\
-  \quad p(v) = r' \quad loc(r') = \iota' \quad S(\iota') = \text{None} \quad host(r') = h' \quad m = \text{Req}(h, r', \iota') \quad E''' = \text{Req}(h'', r', \iota'') \texttt{::} E''
+  E = \text{Req}(h'', r, \iota'') :: E''                            \quad
+  r = \text{FMapped}(\iota, h, \text{Mat}(\iota_s), p, \text{None}) \quad
+  S(\iota) = \text{None}                                            \quad
+  S(\iota_s) = \text{Some}(v)                                       \\
+  \quad p(v) = r'                                                   \quad
+  loc(r') = \iota'                                                  \quad
+  S(\iota') = \text{None}                                           \quad
+  host(r') = h'                                                     \quad
+  m = \text{Req}(h, r', \iota')                                     \quad
+  E''' = \text{Req}(h'', r', \iota'') :: E''
 } { 
-  \{ (R[\texttt{await}(\iota_f)], E, S)^h, (t, E', S')^{h'} \} \cup H \rightarrow \{ (R[\texttt{await}(\iota_f)], E''', S)^h, (t, E' \cdot m, S')^{h'} \} \cup H
+  \{ (R[\texttt{await}(\iota_f)], E, S)^h, (t, E', S')^{h'} \} \cup H \twoheadrightarrow
+  \{ (R[\texttt{await}(\iota_f)], E''', S)^h, (t, E' \cdot m, S')^{h'} \} \cup H
 }
 
 \inferrule[\textsc{R-Req4}] { 
-  E = \text{Req}(h'', r, \iota'') \texttt{::} E'' \quad r = \text{FMapped}(\iota, h, \text{Mat}(\iota_s), p, \text{None}) \quad S(\iota) = \text{None} \quad S(\iota_s) = \text{Some}(v) \\
-  \quad p(v) = r' \quad loc(r') = \iota' \quad S(\iota') = \text{Some}(v') \quad S'' = S + (\iota \mapsto v') \quad m = \text{Res}(\iota'', v')
+  E = \text{Req}(h'', r, \iota'') :: E''                            \quad
+  r = \text{FMapped}(\iota, h, \text{Mat}(\iota_s), p, \text{None}) \quad
+  S(\iota) = \text{None} \quad S(\iota_s) = \text{Some}(v)          \\
+  p(v) = r'                                                         \quad 
+  loc(r') = \iota'                                                  \quad
+  S(\iota') = \text{Some}(v')                                       \quad
+  S'' = S + (\iota \mapsto v')                                      \quad 
+  m = \text{Res}(\iota'', v')
 } { 
-  \{ (R[\texttt{await}(\iota_f)], E, S)^h, (t, E', S')^{h''} \} \cup H \rightarrow \{ (R[\texttt{await}(\iota_f)], E'', S'')^h, (t, E' \cdot m, S')^{h''} \} \cup H
+  \{ (R[\texttt{await}(\iota_f)], E, S)^h, (t, E', S')^{h''} \} \cup H \twoheadrightarrow
+  \{ (R[\texttt{await}(\iota_f)], E'', S'')^h, (t, E' \cdot m, S')^{h''} \} \cup H
 }
 
 \end{mathpar}
@@ -402,13 +458,16 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
 \centering
 \begin{mathpar}
 
-\inferrule[\textsc{RF-Send}]
-{ 
-  host(r) = h' \quad h' \neq h \quad \text{failed}(h') \\
-  \quad i~\text{fresh} \quad \iota = (h, i) \quad S'' = S + (\iota \mapsto \bot)
-}
-{ 
-  \{ (R[\texttt{send}(r)], E, S)^h \} \cup H \rightarrow \{ (R[\iota], E, S'')^h \} \cup H
+\inferrule[\textsc{RF-Send}] { 
+  host(r) = h'      \quad
+  h' \neq h         \quad
+  \text{failed}(h') \\
+  i~\text{fresh}    \quad
+  \iota = (h, i)    \quad
+  S'' = S + (\iota \mapsto \bot)
+} { 
+  \{ (R[\texttt{send}(r)], E, S)^h \} \cup H \twoheadrightarrow
+  \{ (R[\iota], E, S'')^h \} \cup H
 }
 
 \inferrule[\textsc{RF-Req4}]
