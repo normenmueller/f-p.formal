@@ -58,6 +58,7 @@ t ::=                                                                       & \m
 \gap ~|~  \texttt{spore}~\{~\seq{x : T = t}~; (x: T) \Rightarrow t~\}       & \mbox{spore} \\     
 \gap ~|~  \texttt{map}(r, t[, t])                                           & \mbox{map} \\                          
 \gap ~|~  \texttt{flatMap}(r, t[, t])                                       & \mbox{flatMap} \\                          
+\gap ~|~  \texttt{persist}(t)                                               & \mbox{persist} \\
 \gap ~|~  \texttt{send}(t)                                                  & \mbox{send} \\           % send  :: Ref a -> Fut a
 \gap ~|~  \texttt{await}(t)                                                 & \mbox{await future} \\   % await :: Fut a -> a                        
 \gap ~|~  r                                                                 & \mbox{silo reference} \\                          
@@ -106,6 +107,7 @@ r ::=                                               & \mbox{{\it{silo reference 
 \gap \:\:\:\: \text{Mat}(\iota)                     & \mbox{materialized} \\    
 \gap ~|~  \text{Mapped}(\iota, r, p, opt_f)         & \mbox{lineage with \texttt{map}} \\    
 \gap ~|~  \text{FMapped}(\iota, r, p, opt_f)        & \mbox{lineage with \texttt{flatMap}} \\   
+\gap ~|~  \text{Persist}(\iota, r)                  & \mbox{lineage with \texttt{persist}} \\
                                                     & \\   
 Q      ::=                                          & \mbox{{\it{message queue values:}}} \\
 \gap \:\:\:\: \epsilon                              & \mbox{empty queue} \\
@@ -203,6 +205,9 @@ E ::=                                                                           
 \gap ~|~  \texttt{flatMap}(E, t[, t])                                                                     & \mbox{flatMap (ref)} \\
 \gap ~|~  \texttt{flatMap}(v, E[, t])                                                                     & \mbox{flatMap (fun)} \\
 \gap ~|~  \texttt{flatMap}(v, v', E)                                                                      & \mbox{flatMap (err)} \\
+\gap ~|~  \texttt{persist}(E)                                                                             & \mbox{persist} \\
+\gap ~|~  \texttt{send}(E)                                                                                & \mbox{send} \\
+\gap ~|~  \texttt{await}(E)                                                                               & \mbox{await} \\
 \ea$ 
 \end{defn}
 
@@ -224,12 +229,12 @@ E ::=                                                                           
 
 % Define silo store
 
-We write $S' = S + (\iota \mapsto (v, C))$ to express the fact that $S'$ maps $\iota$ to a pair $(v, C)$ and otherwise agrees with $S$; $v$ is the value stored in the silo and $C$ is a mapping from $Hosts$ to $\mathbb{N}$, denoting the per-host usage count of silo $\iota$. We write $S(\iota) = \text{Some}(v, C)$ to express the fact that $S$ maps $\iota$ to $(v, C)$. We write $S(\iota) = \text{None}$ if $S$ does not have a mapping for $\iota$. 
+We write $S' = S + (\iota \mapsto (v, P))$ to express the fact that $S'$ maps $\iota$ to a pair $(v, P)$ and otherwise agrees with $S$; $v$ is the value stored in the silo and $P \subset Hosts$ is a set of hosts which have persisted the silo identified by $\iota$. We write $S(\iota) = \text{Some}(v, P)$ to express the fact that $S$ maps $\iota$ to $(v, P)$. We write $S(\iota) = \text{None}$ if $S$ does not have a mapping for $\iota$.
 
-Our formalization simplifies the computation model with respect to
-materialized silos. In case of a silo reference of the form $Mat((h, i))$
-we assume that there is a mapping in the corresponding silo store $S$,
-such that $S((h, i)) = \text{Some}(v, \{ h \mapsto 1 \})$ for some value $v$.
+Our formalization simplifies the computation model with respect to materialized silos. In case of a silo reference of the form $Mat((h, i))$ we assume that there is a mapping in the corresponding silo store $S$, such that $S((h, i)) = \text{Some}(v, \{ h \})$ for some value $v$.
+
+%% r = Mat((h,i)) = init(hdfs://...)
+%% r.unpersist
 
 \begin{figure}[ht!]
 \centering
@@ -253,71 +258,100 @@ such that $S((h, i)) = \text{Some}(v, \{ h \mapsto 1 \})$ for some value $v$.
   (E[r'], Q, S)^h
 }
 
-\inferrule[\textsc{R-Await}] {
-  S(\iota) = \text{Some}(v, C)
-} {
-  (E[\texttt{await}(\iota)], Q, S)^h \longrightarrow (E[v], Q, S)^h
+\inferrule[\textsc{R-Persist}] { 
+  r' = \text{Persist}((h, i), r) \quad
+  i~\text{fresh}
+} { 
+  (E[\texttt{persist}(r)], Q, S)^h
+  \longrightarrow
+  (E[r'], Q, S)^h
 }
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\inferrule[\textsc{R-Await}] {
+  S(\iota) = \text{Some}(v, P)
+} {
+  (E[\texttt{await}(\iota)], Q, S)^h
+  \longrightarrow
+  (E[v], Q, S)^h
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \inferrule[\textsc{R-Res}] {
-  Q = \text{Res}(\iota, v) :: Q' \quad S' = S + (\iota \mapsto (v, \emptyset))  % default: persist only for a single usage
+  Q  = \text{Res}(\iota, v) :: Q'          \quad
+  S' = S + (\iota \mapsto (v, \emptyset))  
 } {
-  (E[\texttt{await}(\iota')], Q, S)^h \longrightarrow (E[\texttt{await}(\iota')], Q', S')^h
-}
-
-\inferrule[\textsc{R-Req1Local}] {
-  Q         = \text{Req}(h, r, \iota) :: Q' \quad %
-  S(id(r))  = \text{Some}(v, C)             \quad %
-  S'        = S + (\iota \mapsto (v, \emptyset))
-} {
-  (E[\texttt{await}(\iota')], Q, S)^h \rightarrow
+  (E[\texttt{await}(\iota')], Q, S)^h
+  \longrightarrow
   (E[\texttt{await}(\iota')], Q', S')^h
 }
 
-\inferrule[\textsc{R-Req2Local}] {
-  Q          = \text{Req}(h, r, \iota) :: Q'              \quad %
-  r          = \text{Mapped}(\iota', r', p, \text{None})  \quad %
-  % we know: S(\iota') = None
-  S(id(r'))  = \text{Some}(v, C)                          \\
-  v'         = p(v)                                       \quad %
-  S(id(r'))  = \text{Some}(v, C[h \mapsto C(h) - 1])      \\ %
-  S'         = S  + (\iota' \mapsto (v', \{ h \mapsto 1 \}))      \quad %
-  S''        = S' + (\iota  \mapsto (v', \{ h \mapsto 1 \}))
+%\inferrule[\textsc{R-ReqLocal}] {
+%  Q         = \text{Req}(h, r) :: Q'               \quad %
+%  S(id(r))  = \text{Some}(v, P)                    
+%} {
+%  (E[\texttt{await}(\iota')], Q, S)^h
+%  \rightarrow
+%  (E[\texttt{await}(\iota')], Q', S')^h
+%}
+
+\inferrule[\textsc{R-Req1Local}] {
+  Q         = \text{Req}(h, r) :: Q'               \quad %
+  S(id(r))  = \text{Some}(Fwd(r'), P)                 \quad %    XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  S(id(r')) = \text{Some}(Val(v), P)                    \quad %  XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 } {
-  (E[\texttt{await}(\iota'')], Q,  S)^h \rightarrow
-  (E[\texttt{await}(\iota'')], Q', S'')^h
+  (E[\texttt{await}(\iota')], Q, S)^h
+  \rightarrow
+  (E[\texttt{await}(\iota')], Q' \cdot Res(id(r), v), S')^h
 }
 
-\inferrule[\textsc{R-Req3Local}] {
-  Q          = \text{Req}(h, r, \iota) :: Q'              \quad %
-  r          = \text{Mapped}(\iota', r', p, \text{None})  \quad %
-  % we know: S(\iota') = None
-  S(id(r'))  = \text{None}                                \\
-  m          = \text{Req}(h, r', id(r'))
+\inferrule[\textsc{R-ReqMap1Local}] {
+  Q          = \text{Req}(h, r) :: Q'                      \quad %
+  r          = \text{Mapped}(\iota, r', p, \text{None})    \quad %
+  % we know: S(\iota') = None        
+  S(id(r'))  = \text{Some}(v, P)                           \\
+  v'         = p(v)                                        \quad %
+  S'         = S  + (\iota \mapsto (v', \emptyset))        \quad %
+  P = \emptyset \implies S'' = S' - id(r') \land P \neq \emptyset \implies S'' = S'
 } {
-  (E[\texttt{await}(\iota'')], Q, S)^h \rightarrow
-  (E[\texttt{await}(\iota'')], m :: Q, S)^h
+  (E[\texttt{await}(\iota')], Q,  S)^h
+  \rightarrow
+  (E[\texttt{await}(\iota')], Q', S'')^h
 }
 
-\inferrule[\textsc{R-Req4Local}] {
-  Q          = \text{Req}(h, r, \iota) :: Q'               \quad %
-  r          = \text{FMapped}(\iota', r', p, \text{None})  \quad %
+\inferrule[\textsc{R-ReqMap2Local}] {
+  Q          = \text{Req}(h, r) :: Q'                     \quad %
+  r          = \text{Mapped}(\iota, r', p, \text{None})   \quad %
   % we know: S(\iota') = None
-  S(id(r'))  = \text{Some}(v)                              \\
+  S(id(r'))  = \text{None}
+} {
+  (E[\texttt{await}(\iota')], Q, S)^h
+  \rightarrow
+  (E[\texttt{await}(\iota')], \text{Req}(h, r') :: Q, S)^h
+}
+
+\inferrule[\textsc{R-ReqFMap1Local}] {
+  Q          = \text{Req}(h, r) :: Q'                      \quad %
+  r          = \text{FMapped}(\iota, r', p, \text{None})   \quad %
+  % we know: S(\iota') = None
+  S(id(r'))  = \text{Some}(v, P)                           \\
   r''        = p(v)                                        \quad %
   host(r'')  = h                                           \quad %
-  m          = \text{Req}(h, r'', \iota')
+  % m          = \text{Req}(h, r'')
+  S' = S + (\iota \mapsto Fwd(id(r'')))
 } {
-  (E[\texttt{await}(\iota'')], Q, S)^h \rightarrow
-  (E[\texttt{await}(\iota'')], m :: Q, S)^h
+  (E[\texttt{await}(\iota')], Q, S)^h
+  \rightarrow
+  (E[\texttt{await}(\iota')], Q, S)^h
 }
 
 \inferrule[\textsc{R-SendLocal}] {
-  host(r) = h \quad i~\text{fresh}                  \quad
-  \iota = (h, i) \quad m = \text{Req}(h, r, \iota)
+  host(r) = h \quad m = \text{Req}(h, r)
 } {
   (E[\texttt{send}(r)], Q, S)^h \rightarrow
-  (E[\iota], Q \cdot m, S)^h
+  (E[id(r)], Q \cdot m, S)^h
 }
 \end{mathpar}
 \caption{Deterministic reduction.}
