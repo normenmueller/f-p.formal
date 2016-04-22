@@ -30,6 +30,13 @@
 % Member sequences
 \newcommand{\seq}[1]{\overline{#1}}
 
+\newcommand{\note}[1]{{\bf $\clubsuit$ #1 $\spadesuit$}}
+
+%% Calculus abbreviations
+\newcommand{\Val}[1]{\text{Val}(#1)}
+\newcommand{\Fwd}[1]{\text{Fwd}(#1)}
+\newcommand{\Req}[2]{\text{Req}(#1, #2)}
+
 \begin{document}
 
 \todo[inline]{Turn into a typed calculus}
@@ -52,7 +59,7 @@ t ::=                                                                       & \m
 \gap \:\:\:\:  x                                                            & \mbox{variable} \\                                
 \gap ~|~  (x: T) \Rightarrow t                                              & \mbox{abstraction} \\                                
 \gap ~|~  t~t                                                               & \mbox{application} \\                                
-\gap ~|~  \texttt{let}~x = t~\texttt{in}~t                                  & \mbox{let binding} \\                                
+%\gap ~|~  \texttt{let}~x = t~\texttt{in}~t                                  & \mbox{let binding} \\                                
 \gap ~|~  \{ \seq{l = t} \}                                                 & \mbox{record construction} \\                                
 \gap ~|~  t.l                                                               & \mbox{selection} \\     
 \gap ~|~  \texttt{spore}~\{~\seq{x : T = t}~; (x: T) \Rightarrow t~\}       & \mbox{spore} \\     
@@ -184,7 +191,7 @@ In the following we introduce a function to backtrack the host of a referenced s
     \end{cases}$
 \end{defn}
 
-Analogous to~\cite{TAPL}, we introduce the notion of an evaluation context and write $E[t]$ for the ordinary term obtained by replacing the hole in $E$ with $t$.
+Analogous to~\cite{TAPL}, we introduce the notion of an evaluation context and write $E[t]$ for the ordinary term obtained by replacing the hole in $E$ with $t$. Evaluation contexts capture the notion of the ``next subterm to be reduced.''
 
 \begin{defn}[Evaluation Context]
   The set of evaluation contexts is defined as follows:
@@ -194,8 +201,8 @@ E ::=                                                                           
 \gap \:\:\:\: [~]                                                                                         & \mbox{hole} \\
 \gap ~|~  E~t                                                                                             & \mbox{application (fun)} \\
 \gap ~|~  v~E                                                                                             & \mbox{application (arg)} \\
-\gap ~|~  \texttt{let}~x = E~\texttt{in}~t                                                                & \mbox{let (bind)} \\
-\gap ~|~  \texttt{let}~x = v~\texttt{in}~E                                                                & \mbox{let (body)} \\
+%\gap ~|~  \texttt{let}~x = E~\texttt{in}~t                                                                & \mbox{let (bind)} \\
+%\gap ~|~  \texttt{let}~x = v~\texttt{in}~E                                                                & \mbox{let (body)} \\
 \gap ~|~  \{ \seq{l = v} ; l_i = E ; \seq{l' = t} \}                                                      & \mbox{record} \\
 \gap ~|~  E.l                                                                                             & \mbox{selection} \\
 \gap ~|~  \texttt{spore}~\{~\seq{x : T = v} ; x_i : T_i = E ; \seq{x' : T = t} ; (x: T) \Rightarrow t~\}  & \mbox{spore} \\
@@ -223,15 +230,76 @@ E ::=                                                                           
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
+% Lambda reduction.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{figure}[ht!]
+\centering
+
+\begin{mathpar}
+\inferrule[\textsc{R-AppAbs}] {} {
+  E[((x: T) \Rightarrow t)~v']
+  \rightarrow^h
+  E[[x \mapsto v']t]
+}
+
+\inferrule[\textsc{R-ProjRcd}] {} {
+  E[\{\seq{l_i = v_i^{i \in 1..n}}\}.l_j]
+  \rightarrow^h
+  E[v_j]
+}
+
+\inferrule[\textsc{R-AppSpore}] {} {
+  E[(\texttt{spore}~\{~\seq{x : T = v}~; (x: T) \Rightarrow t~\})~v']
+  \rightarrow^h
+  E[\seq{[x \mapsto v]}[x \mapsto v']t]
+}
+
+\inferrule[\textsc{R-Map}] { 
+  r' = \text{Mapped}((h, i), r, p, \text{None}) \quad
+  i~\text{fresh}
+} { 
+  E[\texttt{map}(r, p)]
+  \rightarrow^h
+  E[r']
+}
+
+\inferrule[\textsc{R-FMap}] { 
+  r' = \text{FMapped}((h, i), r, p, \text{None}) \quad
+  i~\text{fresh}
+} {
+  E[\texttt{flatMap}(r, p)]
+  \rightarrow^h
+  E[r']
+}
+
+\inferrule[\textsc{R-Persist}] { 
+  r' = \text{Persist}((h, i), r) \quad
+  i~\text{fresh}
+} { 
+  E[\texttt{persist}(r)]
+  \rightarrow^h
+  E[r']
+}
+
+\end{mathpar}
+\caption{Sequential reduction.}
+\end{figure}
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
 % Deterministic reduction.
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Define silo store
 
-We write $S' = S + (\iota \mapsto (v, P))$ to express the fact that $S'$ maps $\iota$ to a pair $(v, P)$ and otherwise agrees with $S$; $v$ is the value stored in the silo and $P \subset Hosts$ is a set of hosts which have persisted the silo identified by $\iota$. We write $S(\iota) = \text{Some}(v, P)$ to express the fact that $S$ maps $\iota$ to $(v, P)$. We write $S(\iota) = \text{None}$ if $S$ does not have a mapping for $\iota$.
+We write $S' = S + (\iota \mapsto (B, P))$ to express the fact that $S'$ maps $\iota$ to a pair $(B, P)$ and otherwise agrees with $S$. $B$ is a binding of the form $\Val{v}$ or $\Fwd{r}$; the former contains a materialized value $v$, the latter forwards to silo reference $r$, such that $\iota$ is effectively bound to the same value as the identifier of $r$. $P \subset Hosts$ is a set of hosts which have persisted the silo identified by $\iota$. We write $S(\iota) = \text{Some}(B, P)$ to express the fact that $S$ maps $\iota$ to $(B, P)$. We write $S(\iota) = \text{None}$ if $S$ does not have a mapping for $\iota$.
 
-Our formalization simplifies the computation model with respect to materialized silos. In case of a silo reference of the form $Mat((h, i))$ we assume that there is a mapping in the corresponding silo store $S$, such that $S((h, i)) = \text{Some}(v, \{ h \})$ for some value $v$.
+Our formalization simplifies the computation model with respect to materialized silos. In case of a silo reference of the form $Mat((h, i))$ we assume that there is a mapping in the corresponding silo store $S$, such that $S((h, i)) = \text{Some}(\Val{v}, \{ h \})$ for some value $v$.
 
 %% r = Mat((h,i)) = init(hdfs://...)
 %% r.unpersist
@@ -240,80 +308,69 @@ Our formalization simplifies the computation model with respect to materialized 
 \centering
 
 \begin{mathpar}
-\inferrule[\textsc{R-Map}] { 
-  r' = \text{Mapped}((h, i), r, p, \text{None}) \quad
-  i~\text{fresh}
-} { 
-  (E[\texttt{map}(r, p)], Q, S)^h
+\inferrule[\textsc{R-Seq}] { 
+  E[t] \rightarrow^h E[t']
+} {
+  (E[t], Q, S)^h
   \longrightarrow
-  (E[r'], Q, S)^h
-}
-
-\inferrule[\textsc{R-FMap}] { 
-  r' = \text{FMapped}((h, i), r, p, \text{None}) \quad
-  i~\text{fresh}
-} { 
-  (E[\texttt{flatMap}(r, p)], Q, S)^h
-  \longrightarrow
-  (E[r'], Q, S)^h
-}
-
-\inferrule[\textsc{R-Persist}] { 
-  r' = \text{Persist}((h, i), r) \quad
-  i~\text{fresh}
-} { 
-  (E[\texttt{persist}(r)], Q, S)^h
-  \longrightarrow
-  (E[r'], Q, S)^h
+  (E[t'], Q, S)^h
 }
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\inferrule[\textsc{R-Await}] {
-  S(\iota) = \text{Some}(v, P)
+\inferrule[\textsc{R-Await1}] {
+  S(\iota) = \text{Some}(\Val{v}, P)
 } {
   (E[\texttt{await}(\iota)], Q, S)^h
   \longrightarrow
   (E[v], Q, S)^h
 }
 
+\inferrule[\textsc{R-Await2}] {
+  S(\iota) \neq \text{Some}(\Val{v}, P)
+} {
+  (E[\texttt{await}(\iota)], Q, S)^h
+  \longrightarrow
+  (E[v], {\Req h r} :: Q, S)^h % XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \inferrule[\textsc{R-Res}] {
   Q  = \text{Res}(\iota, v) :: Q'          \quad
-  S' = S + (\iota \mapsto (v, \emptyset))  
+  S' = S + (\iota \mapsto (\Val{v}, \emptyset))  
 } {
   (E[\texttt{await}(\iota')], Q, S)^h
   \longrightarrow
   (E[\texttt{await}(\iota')], Q', S')^h
 }
 
-%\inferrule[\textsc{R-ReqLocal}] {
-%  Q         = \text{Req}(h, r) :: Q'               \quad %
-%  S(id(r))  = \text{Some}(v, P)                    
-%} {
-%  (E[\texttt{await}(\iota')], Q, S)^h
-%  \rightarrow
-%  (E[\texttt{await}(\iota')], Q', S')^h
-%}
-
 \inferrule[\textsc{R-Req1Local}] {
   Q         = \text{Req}(h, r) :: Q'               \quad %
-  S(id(r))  = \text{Some}(Fwd(r'), P)                 \quad %    XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-  S(id(r')) = \text{Some}(Val(v), P)                    \quad %  XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  S(id(r))  = \text{Some}(\Fwd{r'}, P)             \quad %
+  S(id(r')) = \text{Some}(\Val{v}, P')             \quad %
 } {
   (E[\texttt{await}(\iota')], Q, S)^h
   \rightarrow
   (E[\texttt{await}(\iota')], Q' \cdot Res(id(r), v), S')^h
 }
 
+\inferrule[\textsc{R-Req2Local}] {
+  Q         = \text{Req}(h, r) :: Q'               \quad %
+  S(id(r))  = \text{Some}(\Fwd{r'}, P)              \quad %
+  S(id(r')) \neq \text{Some}(\Val{v}, P')           \quad %
+} {
+  (E[\texttt{await}(\iota')], Q, S)^h
+  \rightarrow
+  (E[\texttt{await}(\iota')], \text{Req}(h, r') :: Q, S')^h
+}
+
 \inferrule[\textsc{R-ReqMap1Local}] {
   Q          = \text{Req}(h, r) :: Q'                      \quad %
   r          = \text{Mapped}(\iota, r', p, \text{None})    \quad %
-  % we know: S(\iota') = None        
-  S(id(r'))  = \text{Some}(v, P)                           \\
+  S(id(r'))  = \text{Some}(\Val{v}, P)                     \\
   v'         = p(v)                                        \quad %
-  S'         = S  + (\iota \mapsto (v', \emptyset))        \quad %
+  S'         = S  + (\iota \mapsto (\Val{v'}, \emptyset))  \quad %
   P = \emptyset \implies S'' = S' - id(r') \land P \neq \emptyset \implies S'' = S'
 } {
   (E[\texttt{await}(\iota')], Q,  S)^h
@@ -324,8 +381,7 @@ Our formalization simplifies the computation model with respect to materialized 
 \inferrule[\textsc{R-ReqMap2Local}] {
   Q          = \text{Req}(h, r) :: Q'                     \quad %
   r          = \text{Mapped}(\iota, r', p, \text{None})   \quad %
-  % we know: S(\iota') = None
-  S(id(r'))  = \text{None}
+  S(id(r'))  \neq \text{Some}(\Val{v}, P)
 } {
   (E[\texttt{await}(\iota')], Q, S)^h
   \rightarrow
@@ -335,11 +391,9 @@ Our formalization simplifies the computation model with respect to materialized 
 \inferrule[\textsc{R-ReqFMap1Local}] {
   Q          = \text{Req}(h, r) :: Q'                      \quad %
   r          = \text{FMapped}(\iota, r', p, \text{None})   \quad %
-  % we know: S(\iota') = None
-  S(id(r'))  = \text{Some}(v, P)                           \\
+  S(id(r'))  = \text{Some}(\Val{v}, P)                     \\
   r''        = p(v)                                        \quad %
   host(r'')  = h                                           \quad %
-  % m          = \text{Req}(h, r'')
   S' = S + (\iota \mapsto Fwd(id(r'')))
 } {
   (E[\texttt{await}(\iota')], Q, S)^h
@@ -347,8 +401,18 @@ Our formalization simplifies the computation model with respect to materialized 
   (E[\texttt{await}(\iota')], Q, S)^h
 }
 
+\inferrule[\textsc{R-ReqFMap2Local}] {
+  Q          = \text{Req}(h, r) :: Q'                      \quad %
+  r          = \text{FMapped}(\iota, r', p, \text{None})   \quad %
+  S(id(r'))  \neq \text{Some}(\Val{v}, P)                  \\
+} {
+  (E[\texttt{await}(\iota')], Q, S)^h
+  \rightarrow
+  (E[\texttt{await}(\iota')], {\Req h {r'}} :: Q, S)^h
+}
+
 \inferrule[\textsc{R-SendLocal}] {
-  host(r) = h \quad m = \text{Req}(h, r)
+  host(r) = h \quad m = {\Req h, r}
 } {
   (E[\texttt{send}(r)], Q, S)^h \rightarrow
   (E[id(r)], Q \cdot m, S)^h
