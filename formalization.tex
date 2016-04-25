@@ -33,6 +33,8 @@
 \newcommand{\note}[1]{{\bf $\clubsuit$ #1 $\spadesuit$}}
 
 %% Calculus abbreviations
+\newcommand{\None}{\text{None}}
+\newcommand{\Some}[1]{\text{Some}(#1)}
 \newcommand{\Val}[1]{\text{Val}(#1)}
 \newcommand{\Fwd}[1]{\text{Fwd}(#1)}
 \newcommand{\Req}[2]{\text{Req}(#1, #2)}
@@ -188,6 +190,7 @@ In the following we introduce a function to backtrack the host of a referenced s
     h        & \text{if } r = Mat((h, i)) \\
     host(r') & \text{if } r = Mapped(\_, r', \_, \_) \\
     host(r') & \text{if } r = FMapped(\_, r', \_, \_) \\
+    host(r') & \text{if } r = Persist(\_, r', \_) \\
     \end{cases}$
 \end{defn}
 
@@ -223,6 +226,16 @@ E ::=                                                                           
     \iota  & \text{if } r = Mat(\iota) \\
     \iota  & \text{if } r = Mapped(\iota, r', \_, \_) \\
     \iota  & \text{if } r = FMapped(\iota, r', \_, \_) \\
+    \iota  & \text{if } r = Persist(\iota, r', \_) \\
+    \end{cases}$
+\end{defn}
+
+\begin{defn}[Silo reference parent]
+    $parent(r) := \begin{cases}
+    \None     & \text{if } r = Mat(\_) \\
+    \Some{r'} & \text{if } r = Mapped(\_, r', \_, \_) \\
+    \Some{r'} & \text{if } r = FMapped(\_, r', \_, \_) \\
+    \Some{r'} & \text{if } r = Persist(\_, r', \_) \\
     \end{cases}$
 \end{defn}
 
@@ -275,10 +288,19 @@ E ::=                                                                           
 }
 
 \inferrule[\textsc{R-Persist}] { 
-  r' = \text{Persist}((h, i), r) \quad
+  r' = \text{Persist}((h, i), r, \cdot \cup \cdot) \quad
   i~\text{fresh}
 } { 
   E[\texttt{persist}(r)]
+  \rightarrow^h
+  E[r']
+}
+
+\inferrule[\textsc{R-Unpersist}] { 
+  r' = \text{Persist}((h, i), r, \cdot \setminus \cdot) \quad
+  i~\text{fresh}
+} { 
+  E[\texttt{unpersist}(r)]
   \rightarrow^h
   E[r']
 }
@@ -327,18 +349,29 @@ Our formalization simplifies the computation model with respect to materialized 
 }
 
 \inferrule[\textsc{R-Await2}] {
-  S(\iota) \neq \text{Some}(\Val{v}, P)
+  S(\iota) = \text{Some}(\Fwd{r}, P) \quad
+  S(id(r)) = \text{Some}(\Val{v}, P')
 } {
   (E[\texttt{await}(\iota)], Q, S)^h
   \longrightarrow
-  (E[v], {\Req h r} :: Q, S)^h % XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  (E[v], Q, S)^h
+}
+
+\inferrule[\textsc{R-Await3}] {
+  S(\iota) = \text{Some}(\Fwd{r}, P) \quad
+  S(id(r)) \neq \text{Some}(\Val{v}, P')
+} {
+  (E[\texttt{await}(\iota)], Q, S)^h
+  \longrightarrow
+  (E[\texttt{await}(\iota)], {\Req h r} :: Q, S)^h
+  % result: S(id(r)) = Some(Val(v), ..)
 }
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \inferrule[\textsc{R-Res}] {
-  Q  = \text{Res}(\iota, v) :: Q'          \quad
-  S' = S + (\iota \mapsto (\Val{v}, \emptyset))  
+  Q  = \text{Res}(\iota, v, P) :: Q'          \quad
+  S' = S + (\iota \mapsto (\Val{v}, P))  
 } {
   (E[\texttt{await}(\iota')], Q, S)^h
   \longrightarrow
@@ -352,20 +385,20 @@ Our formalization simplifies the computation model with respect to materialized 
 } {
   (E[\texttt{await}(\iota')], Q, S)^h
   \rightarrow
-  (E[\texttt{await}(\iota')], Q' \cdot Res(id(r), v), S')^h
+  (E[\texttt{await}(\iota')], Q' \cdot Res(id(r), v, P), S')^h
 }
 
 \inferrule[\textsc{R-Req2Local}] {
   Q         = \text{Req}(h, r) :: Q'               \quad %
-  S(id(r))  = \text{Some}(\Fwd{r'}, P)              \quad %
-  S(id(r')) \neq \text{Some}(\Val{v}, P')           \quad %
+  S(id(r))  = \text{Some}(\Fwd{r'}, P)             \quad %
+  S(id(r')) \neq \text{Some}(\Val{v}, P')          \quad %
 } {
   (E[\texttt{await}(\iota')], Q, S)^h
   \rightarrow
   (E[\texttt{await}(\iota')], \text{Req}(h, r') :: Q, S')^h
 }
 
-\inferrule[\textsc{R-ReqMap1Local}] {
+\inferrule[\textsc{R-ReqMapLocal}] {
   Q          = \text{Req}(h, r) :: Q'                      \quad %
   r          = \text{Mapped}(\iota, r', p, \text{None})    \quad %
   S(id(r'))  = \text{Some}(\Val{v}, P)                     \\
@@ -378,41 +411,74 @@ Our formalization simplifies the computation model with respect to materialized 
   (E[\texttt{await}(\iota')], Q', S'')^h
 }
 
-\inferrule[\textsc{R-ReqMap2Local}] {
-  Q          = \text{Req}(h, r) :: Q'                     \quad %
-  r          = \text{Mapped}(\iota, r', p, \text{None})   \quad %
-  S(id(r'))  \neq \text{Some}(\Val{v}, P)
-} {
-  (E[\texttt{await}(\iota')], Q, S)^h
-  \rightarrow
-  (E[\texttt{await}(\iota')], \text{Req}(h, r') :: Q, S)^h
-}
+%\inferrule[\textsc{R-ReqMap2Local}] {
+%  Q          = \text{Req}(h, r) :: Q'                     \quad %
+%  r          = \text{Mapped}(\iota, r', p, \text{None})   \quad %
+%  S(id(r'))  \neq \text{Some}(\Val{v}, P)
+%} {
+%  (E[\texttt{await}(\iota')], Q, S)^h
+%  \rightarrow
+%  (E[\texttt{await}(\iota')], \text{Req}(h, r') :: Q, S)^h
+%}
 
-\inferrule[\textsc{R-ReqFMap1Local}] {
+\inferrule[\textsc{R-ReqFMapLocal}] {
   Q          = \text{Req}(h, r) :: Q'                      \quad %
   r          = \text{FMapped}(\iota, r', p, \text{None})   \quad %
   S(id(r'))  = \text{Some}(\Val{v}, P)                     \\
   r''        = p(v)                                        \quad %
   host(r'')  = h                                           \quad %
-  S' = S + (\iota \mapsto Fwd(id(r'')))
+  S' = S + (\iota \mapsto (\Fwd{id(r'')}, \emptyset))
 } {
   (E[\texttt{await}(\iota')], Q, S)^h
   \rightarrow
   (E[\texttt{await}(\iota')], Q, S)^h
 }
 
-\inferrule[\textsc{R-ReqFMap2Local}] {
+%\inferrule[\textsc{R-ReqFMap2Local}] {
+%  Q          = \text{Req}(h, r) :: Q'                      \quad %
+%  r          = \text{FMapped}(\iota, r', p, \text{None})   \quad %
+%  S(id(r'))  \neq \text{Some}(\Val{v}, P)                  \\
+%} {
+%  (E[\texttt{await}(\iota')], Q, S)^h
+%  \rightarrow
+%  (E[\texttt{await}(\iota')], {\Req h {r'}} :: Q, S)^h
+%}
+
+\inferrule[\textsc{R-ReqPersistLocal}] {
   Q          = \text{Req}(h, r) :: Q'                      \quad %
-  r          = \text{FMapped}(\iota, r', p, \text{None})   \quad %
-  S(id(r'))  \neq \text{Some}(\Val{v}, P)                  \\
+  r          = \text{Persist}(\iota, r', \star)    \quad %
+  \iota      = (h, i) \quad %
+  S(id(r'))  = \text{Some}(\Val{v}, P)                     \\
+  S'         = S  + (\iota \mapsto (\Val{v}, P \star \{h\}))  \quad %
+  P = \emptyset \implies S'' = S' - id(r') \land P \neq \emptyset \implies S'' = S'
 } {
-  (E[\texttt{await}(\iota')], Q, S)^h
+  (E[\texttt{await}(\iota')], Q,  S)^h
   \rightarrow
-  (E[\texttt{await}(\iota')], {\Req h {r'}} :: Q, S)^h
+  (E[\texttt{await}(\iota')], Q', S'')^h
+}
+
+%\inferrule[\textsc{R-ReqPersist2Local}] {
+%  Q          = \text{Req}(h, r) :: Q'                     \quad %
+%  r          = \text{Persist}(\iota, r')   \quad %
+%  S(id(r'))  \neq \text{Some}(\Val{v}, P)
+%} {
+%  (E[\texttt{await}(\iota')], Q, S)^h
+%  \rightarrow
+%  (E[\texttt{await}(\iota')], \text{Req}(h, r') :: Q, S)^h
+%}
+
+\inferrule[\textsc{R-ReqParentLocal}] {
+  Q          = \text{Req}(h, r) :: Q'          \quad %
+  \text{Some}(r') = parent(r)                  \quad %
+  S(id(r'))       \neq \text{Some}(\Val{v}, P) \\
+} {
+  (E[\texttt{await}(\iota)], Q, S)^h
+  \rightarrow
+  (E[\texttt{await}(\iota)], {\Req h {r'}} :: Q, S)^h
 }
 
 \inferrule[\textsc{R-SendLocal}] {
-  host(r) = h \quad m = {\Req h, r}
+  host(r) = h \quad m = {\Req h r}
 } {
   (E[\texttt{send}(r)], Q, S)^h \rightarrow
   (E[id(r)], Q \cdot m, S)^h
@@ -468,35 +534,40 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
 \begin{figure}[ht!]
 \begin{mathpar}
 \inferrule[\textsc{R-Send}] {
-  host(r) = h' \quad h' \neq h \quad i~\text{fresh} \\
-  \iota = (h, i) \quad m = \text{Req}(h, r, \iota)
+  host(r) = h' \quad h' \neq h \quad m = {\Req h r}
 } { 
-  \{ (E[\texttt{send}(r)], Q, S)^h, (t, Q', S')^{h'} \} \cup H \twoheadrightarrow
-  \{ (E[\iota], Q, S)^h, (t, Q' \cdot m, S')^{h'} \} \cup H
+  \{ (E[\texttt{send}(r)], Q, S)^h, (t, Q', S')^{h'} \} \cup H
+  \twoheadrightarrow
+  \{ (E[id(r)], Q, S)^h, (t, Q' \cdot m, S')^{h'} \} \cup H
 }
 
 \inferrule[\textsc{R-Req1}] { 
-  Q = \text{Req}(h', r, \iota) :: Q' \quad
-  S(id(r)) = \text{Some}(v)          \quad
-  m = \text{Res}(\iota, v)
+  Q = \Req {h'} r :: Q'              \quad
+  S(id(r)) = \text{Some}(\Val{v}, P) \quad
+  m = \text{Res}(id(r), v)
 } { 
-  \{ (E[\texttt{await}(\iota')], Q, S)^h, (t, Q'', S')^{h'} \} \cup H \twoheadrightarrow
-  \{ (E[\texttt{await}(\iota')], Q', S)^h, (t, Q'' \cdot m, S')^{h'} \} \cup H
+  \{ (E[\texttt{await}(\iota)], Q, S)^h, (t, Q'', S')^{h'} \} \cup H
+  \twoheadrightarrow
+  \{ (E[\texttt{await}(\iota)], Q', S)^h, (t, Q'' \cdot m, S')^{h'} \} \cup H
 }
 
 \inferrule[\textsc{R-Req2}] { 
-  E = \text{Req}(h', r, \iota') :: E'             \quad
-  r = \text{Mapped}(\iota, h, r', p, \text{None}) \quad
-  r' = \text{Mat}(\iota_s)                        \quad
-  S(\iota) = \text{None}                          \\
-  S(\iota_s) = \text{Some}(v)                     \quad
-  p(v) = v'                                       \quad
-  S' = S + (\iota \mapsto v')                     \quad
-  m = \text{Res}(\iota', v')
+  Q          =  \Req {h'} r :: Q'                          \quad
+  S(id(r)) \neq \text{Some}(\Val{v}, P)                    \quad
+  r          = \text{Mapped}(\iota, h, r', p, \text{None}) \\
+  S(id(r'))  = \text{Some}(\Val{v'}, P')                   \quad
+  p(v')      = v''                                         \quad
+  S'         = S + (\iota \mapsto (\Val{v''}, \emptyset))  \quad
+  m          = \text{Res}(\iota, v'')
+  \\
+  P' = \emptyset \implies S'' = S' - id(r') \land P' \neq \emptyset \implies S'' = S'
 } { 
-  \{ (R[\texttt{await}(\iota_f)], E, S)^h, (t, E'', S'')^{h'} \} \cup H \twoheadrightarrow
-  \{ (R[\texttt{await}(\iota_f)], E', S')^h, (t, E'' \cdot m, S'')^{h'} \} \cup H
+  \{ (R[\texttt{await}(\iota')], Q, S)^h, (t, Q'', S''')^{h'} \} \cup H
+  \twoheadrightarrow
+  \{ (R[\texttt{await}(\iota')], Q', S'')^h, (t, Q'' \cdot m, S''')^{h'} \} \cup H
 }
+
+% XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 \inferrule[\textsc{R-Req3}] { 
   E = \text{Req}(h'', r, \iota'') :: E''                            \quad
