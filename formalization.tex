@@ -38,6 +38,7 @@
 \newcommand{\Val}[1]{\text{Val}(#1)}
 \newcommand{\Fwd}[1]{\text{Fwd}(#1)}
 \newcommand{\Req}[2]{\text{Req}(#1, #2)}
+\newcommand{\Fut}[2]{\text{Fut}(#1, #2)}
 
 \begin{document}
 
@@ -357,6 +358,7 @@ Our formalization simplifies the computation model with respect to materialized 
   (E[v], Q, S)^h
 }
 
+% What if host(r) != h?
 \inferrule[\textsc{R-Await3}] {
   S(\iota) = \text{Some}(\Fwd{r}, P) \quad
   S(id(r)) \neq \text{Some}(\Val{v}, P')
@@ -427,11 +429,11 @@ Our formalization simplifies the computation model with respect to materialized 
   S(id(r'))  = \text{Some}(\Val{v}, P)                     \\
   r''        = p(v)                                        \quad %
   host(r'')  = h                                           \quad %
-  S' = S + (\iota \mapsto (\Fwd{id(r'')}, \emptyset))
+  S' = S + (\iota \mapsto (\Fwd{r''}, \emptyset))
 } {
   (E[\texttt{await}(\iota')], Q, S)^h
   \rightarrow
-  (E[\texttt{await}(\iota')], Q, S)^h
+  (E[\texttt{await}(\iota')], Q, S')^h
 }
 
 %\inferrule[\textsc{R-ReqFMap2Local}] {
@@ -551,10 +553,10 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
   \{ (E[\texttt{await}(\iota)], Q', S)^h, (t, Q'' \cdot m, S')^{h'} \} \cup H
 }
 
-\inferrule[\textsc{R-Req2}] { 
+\inferrule[\textsc{R-Req1Map}] { 
   Q          =  \Req {h'} r :: Q'                          \quad
   S(id(r)) \neq \text{Some}(\Val{v}, P)                    \quad
-  r          = \text{Mapped}(\iota, h, r', p, \text{None}) \\
+  r          = \text{Mapped}(\iota, r', p, \text{None})    \\
   S(id(r'))  = \text{Some}(\Val{v'}, P')                   \quad
   p(v')      = v''                                         \quad
   S'         = S + (\iota \mapsto (\Val{v''}, \emptyset))  \quad
@@ -567,23 +569,78 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
   \{ (R[\texttt{await}(\iota')], Q', S'')^h, (t, Q'' \cdot m, S''')^{h'} \} \cup H
 }
 
-% XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
-\inferrule[\textsc{R-Req3}] { 
-  E = \text{Req}(h'', r, \iota'') :: E''                            \quad
-  r = \text{FMapped}(\iota, h, \text{Mat}(\iota_s), p, \text{None}) \quad
-  S(\iota) = \text{None}                                            \quad
-  S(\iota_s) = \text{Some}(v)                                       \\
-  \quad p(v) = r'                                                   \quad
-  loc(r') = \iota'                                                  \quad
-  S(\iota') = \text{None}                                           \quad
-  host(r') = h'                                                     \quad
-  m = \text{Req}(h, r', \iota')                                     \quad
-  E''' = \text{Req}(h'', r', \iota'') :: E''
+\inferrule[\textsc{R-Req2Map}] { 
+  Q          =  \Req {h'} r :: \hat{Q}                     \quad
+  S(id(r)) \neq \text{Some}(\Val{v}, P)                    \quad
+  r          = \text{Mapped}(\iota, r', p, \text{None})    \\
+  S(id(r')) \neq \text{Some}(\Val{v'}, P')
 } { 
-  \{ (R[\texttt{await}(\iota_f)], E, S)^h, (t, E', S')^{h'} \} \cup H \twoheadrightarrow
-  \{ (R[\texttt{await}(\iota_f)], E''', S)^h, (t, E' \cdot m, S')^{h'} \} \cup H
+  \{ (E[\texttt{await}(\iota')], Q, S)^h, (t', Q', S')^{h'} \} \cup H
+  \twoheadrightarrow
+  \{ (E[\texttt{await}(\iota')], \Req h {r'} :: Q, S)^h, (t', Q', S')^{h'} \} \cup H
 }
+
+% Rules that send Req:
+% R-Send: true (append)
+% (R-Req2Map: true (prepend))
+% R-Req2Fwd: true (prepend)
+% 
+% if a rule sends Req(h, r) to h', is it true that host(r) == h'?
+% XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+\inferrule[\textsc{R-Req1FMap}] {
+  Q          = \Req {h''} r :: Q''                         \quad
+  S(id(r)) \neq \text{Some}(\Val{v}, P)                    \quad
+  r          = \text{FMapped}(\iota, r', p, \text{None})   \\
+  S(id(r'))  = \text{Some}(\Val{v'}, P')                   \quad
+  p(v')      = r''                                         \quad
+  S''        = S + (\iota \mapsto (\Fwd{r''}, \emptyset))  \\
+  P' = \emptyset \implies S''' = S'' - id(r') \land P' \neq \emptyset \implies S''' = S''
+} { 
+  \{ (R[\texttt{await}(\iota')], Q, S)^h, (t, Q', S')^{h'} \} \cup H
+  \twoheadrightarrow
+  \{ (R[\texttt{await}(\iota')], Q, S''')^h, (t, Q', S')^{h'} \} \cup H
+}
+
+\inferrule[\textsc{R-Req1Fwd}] {
+  Q         = \text{Req}(h', r) :: Q''             \quad %
+  S(id(r))  = \text{Some}(\Fwd{r'}, P)             \quad %
+  S(id(r')) = \text{Some}(\Val{v}, P')             \quad %
+} {
+  \{ (E[\texttt{await}(\iota)], Q, S)^h, (t, Q', S')^{h'} \} \cup H
+  \twoheadrightarrow
+  \{ (E[\texttt{await}(\iota)], Q'', S)^h, (t, Q' \cdot Res(id(r), v, P), S')^{h'} \} \cup H
+}
+
+% 1. Angenommen Host h hat einen \Fwd{r'}, dann wissen wir nicht, 
+%    auf welchem Host r' liegt. Das war der eigentliche Grund, Fwd
+%    einzufuehren, weil dann ein flatMap keine Daten transferieren muss.
+%    D.h. wir wollen zulassen, dass eine Referenz in einem Fwd auf
+%    einem beliebigen Host liegen kann.
+% Jetzt kann es sein, dass ich auf Host h ein r = r0.flatMap(p) mache.
+% diese Referenz r kann ich an einen anderen Host h' geben.
+% Jetzt macht Host h' ein r.send(). D.h., h' schickt einen Req(h', r) an h.
+% Jetzt sagt Host h: S(id(r)) = Fwd(r'), und r' kann auch auf Host h' sein
+% (da Host von r' beliebig wie oben erwaehnt).
+% Und in diesem Fall gilt, dass host(r') = h' ist, und daher Host h
+% einen Req(h', r' r) an h'' = h' sendet. Das hat zur Folge, das Host h'
+% jetzt einen Req(h', r', r) bearbeiten muss. Daher muessen auch die lokalen
+% Regeln mit zwei unterschiedlichen Referenzen umgehen koennen, weil
+% r definitiv ungleich r' ist.
+\inferrule[\textsc{R-Req2Fwd}] {
+  Q         = \text{Req}(h', r) :: \hat{Q}           \quad %
+  S(id(r))  = \text{Some}(\Fwd{r'}, P)               \quad %
+  S(id(r')) \neq \text{Some}(\Val{v}, P')            \quad %
+  S'        = S + (id(r') \mapsto \text{Fut}(h', r)) \quad %
+  h''       = host(r')                               \quad %
+  m         = \text{Req}(h', r', r)
+} {
+  \{ (E[\texttt{await}(\iota)], Q, S)^h, (t', Q', S')^{h'}, (t'', Q'', S'')^{h''} \} \cup H
+  \twoheadrightarrow
+  \{ (E[\texttt{await}(\iota)], \hat{Q}, S)^h, (t', Q', S')^{h'}, (t'', \text{Req}(h, r') :: Q'', S'')^{h''} \} \cup H
+}
+
+% XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 \inferrule[\textsc{R-Req4}] { 
   E = \text{Req}(h'', r, \iota'') :: E''                            \quad
