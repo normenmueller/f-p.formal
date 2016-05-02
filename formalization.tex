@@ -66,28 +66,36 @@ t ::=                                                                       & \m
 \gap ~|~  t~t                                                               & \mbox{application} \\                                
 %\gap ~|~  \texttt{let}~x = t~\texttt{in}~t                                  & \mbox{let binding} \\                                
 \gap ~|~  \{ \seq{l = t} \}                                                 & \mbox{record construction} \\                                
-\gap ~|~  t.l                                                               & \mbox{selection} \\     
-\gap ~|~  \texttt{spore}~\{~\seq{x : T = t}~; (x: T) \Rightarrow t~\}       & \mbox{spore} \\     
-\gap ~|~  \texttt{map}(r, t[, t])                                           & \mbox{map} \\                          
-\gap ~|~  \texttt{flatMap}(r, t[, t])                                       & \mbox{flatMap} \\                          
+\gap ~|~  t.l                                                               & \mbox{selection} \\
+\gap ~|~  \texttt{spore}~\{~\seq{x : T = t}~; (x: T) \Rightarrow t~\}       & \mbox{spore} \\
+\gap ~|~  \texttt{spawn}(t)                                                 & \mbox{spawn host} \\
+\gap ~|~  \texttt{populate}(t, t)                                           & \mbox{populate silo} \\
+\gap ~|~  \texttt{map}(t, t[, t])                                           & \mbox{map} \\                          
+\gap ~|~  \texttt{flatMap}(t, t[, t])                                       & \mbox{flatMap} \\                          
 \gap ~|~  \texttt{persist}(t)                                               & \mbox{persist} \\
 \gap ~|~  \texttt{send}(t)                                                  & \mbox{send} \\           % send  :: Ref a -> Fut a
 \gap ~|~  \texttt{await}(t)                                                 & \mbox{await future} \\   % await :: Fut a -> a                        
 \gap ~|~  r                                                                 & \mbox{silo reference} \\                          
-\gap ~|~  \iota                                                             & \mbox{future} \\     
+\gap ~|~  \iota                                                             & \mbox{future} \\
+\gap ~|~  h                                                                 & \mbox{host} \\
                                                                             & \\                                
 v ::=                                                                       & \mbox{{\it{values:}}} \\                                
 \gap \:\:\:\: (x: T) \Rightarrow t                                          & \mbox{abstraction value} \\                                
 \gap ~|~  \{ \seq{l = v} \}                                                 & \mbox{record value} \\                                
 \gap ~|~  p                                                                 & \mbox{spore value} \\                                
 \gap ~|~  r                                                                 & \mbox{silo reference} \\                                
-\gap ~|~  \iota                                                             & \mbox{future} \\     
+\gap ~|~  \iota                                                             & \mbox{future value} \\
+\gap ~|~  h                                                                 & \mbox{host value} \\
 p ::=     \texttt{spore}~\{~\seq{x : T = v}~; (x: T) \Rightarrow t~\}       & \mbox{spore value} \\     
-                                                                            & \\                          
+\iota  ::= (h,i) \quad \text{where}~i \in \mathbb{N}                        & \mbox{future value} \\
+                                                                            & \\   
 T ::=                                                                       & \mbox{{\it{types:}}} \\                          
 \gap \:\:\:\: T \Rightarrow T                                               & \mbox{function type} \\                          
 \gap ~|~  \{ \seq{l : T} \}                                                 & \mbox{record type} \\                          
 \gap ~|~  \mathcal{S}                                                       & \mbox{} \\
+\gap ~|~  \texttt{Host}                                                     & \mbox{host type} \\
+\gap ~|~  \texttt{SiloRef}[T]                                               & \mbox{silo reference type} \\
+\gap ~|~  \texttt{Future}[T]                                                & \mbox{future type} \\
 \mathcal{S} ::= T \Rightarrow T~\{~\texttt{type}~\mathcal{C} = \seq{T}~\}   & \mbox{spore type} \\
 \gap ~|~ T \Rightarrow T~\{~\texttt{type}~\mathcal{C}~\}                    & \mbox{abstract spore type} \\
 \ea$
@@ -96,6 +104,8 @@ T ::=                                                                       & \m
 \end{figure}
 
 Classification of $r$ and $\iota$ is specified at Figure~\ref{fig:elems-opsem}.
+
+$\iota$ .... decentralized identifier
 
 \newpage
 
@@ -109,12 +119,6 @@ Classification of $r$ and $\iota$ is specified at Figure~\ref{fig:elems-opsem}.
 \centering
 
 $\ba[t]{l@{\hspace{2mm}}l}
-h \in Hosts                                         & \\   
-i \in \mathbb{N}                                    & \\   
-                                                    & \\   
-\iota  ::=                                          & \mbox{{\it{future values:}}} \\
-\gap \:\:\: (h, i)                                  & \mbox{decentralized identifier} \\   
-                                                    & \\   
 r ::=                                               & \mbox{{\it{silo reference values:}}} \\
 \gap \:\:\:\: \text{Mat}(\iota)                     & \mbox{materialized} \\    
 \gap ~|~  \text{Mapped}(\iota, r, p, opt_f)         & \mbox{lineage with \texttt{map}} \\    
@@ -212,6 +216,9 @@ E ::=                                                                           
 \gap ~|~  \{ \seq{l = v} ; l_i = E ; \seq{l' = t} \}                                                      & \mbox{record} \\
 \gap ~|~  E.l                                                                                             & \mbox{selection} \\
 \gap ~|~  \texttt{spore}~\{~\seq{x : T = v} ; x_i : T_i = E ; \seq{x' : T = t} ; (x: T) \Rightarrow t~\}  & \mbox{spore} \\
+\gap ~|~  \texttt{spawn}(E)                                                                               & \mbox{spawn} \\
+\gap ~|~  \texttt{populate}(E, t)                                                                         & \mbox{populate (host)} \\
+\gap ~|~  \texttt{populate}(v, E)                                                                         & \mbox{populate (spore)} \\
 \gap ~|~  \texttt{map}(E, t[, t])                                                                         & \mbox{map (ref)} \\
 \gap ~|~  \texttt{map}(v, E[, t])                                                                         & \mbox{map (fun)} \\
 \gap ~|~  \texttt{map}(v, v', E)                                                                          & \mbox{map (err)} \\
@@ -513,6 +520,23 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
   \{ (t', Q', S')^h \} \cup H
 }
 
+\inferrule[\textsc{R-Spawn}] { 
+  h'~\text{fresh}
+} {
+  \{ (E[\texttt{spawn}(\texttt{spore}~\{~\seq{x : T = v}~; (x: T) \Rightarrow t~\})], Q, S)^h \} \cup H
+  \\ \twoheadrightarrow
+  \{ (E[h'], Q, S)^h, ((\texttt{spore}~\{~\seq{x : T = v}~; (x: T) \Rightarrow t~\})~\{\}, \epsilon, \epsilon)^{h'} \} \cup H
+}
+
+% TODO send spore instead of a value `v`
+\inferrule[\textsc{R-Populate}] { 
+  S'' = S' + (\iota \mapsto v) \quad \iota = (h', i) \quad i, r~\text{fresh}
+} {
+  \{ (E[\texttt{populate}(h', v)], Q, S)^h, (t', Q', S')^{h'} \} \cup H
+  \twoheadrightarrow
+  \{ (E[r], Q, S)^h, (t', Q', S'')^{h'} \} \cup H
+}
+
 \inferrule[\textsc{R-Req1}] { 
   Q        = {\Req {h'} r \iota} :: Q''  \quad
   S(id(r)) = \text{Some}(\Val{v}, P)     \quad
@@ -592,6 +616,127 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
 
 \item[\textsc{R-Req4}] ...
 \end{description}
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Type assignment.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{figure}[ht!]
+\begin{mathpar}
+% variable
+\inferrule[\textsc{T-Var}] {
+  x : T \in \Gamma
+} { 
+  \Gamma ; \Sigma \vdash x : T
+}
+
+\inferrule[\textsc{T-SiloRef}] {
+  \Sigma(r) : T
+} {
+  \Gamma ; \Sigma \vdash r : \texttt{SiloRef}[T]
+}
+
+\inferrule[\textsc{T-Future}] {
+  \Sigma(\iota) : T
+} {
+  \Gamma ; \Sigma \vdash \iota : \texttt{Future}[T]
+}
+
+% abstraction
+\inferrule[\textsc{T-Abs}] {
+  \Gamma, x : T ; \Sigma \vdash t : T'
+} { 
+  \Gamma ; \Sigma \vdash ((x: T) \Rightarrow t) : T \Rightarrow T'
+}
+
+% application
+\inferrule[\textsc{T-App}] {
+  \Gamma ; \Sigma \vdash t : T \Rightarrow T' \quad \Gamma ; \Sigma \vdash t' : T
+} { 
+  \Gamma ; \Sigma \vdash (t~t') : T'
+}
+
+% record
+\inferrule[\textsc{T-Record}] {
+  \Gamma ; \Sigma \vdash \seq{t} : \seq{T}
+} {
+  \Gamma ; \Sigma \vdash \{ \seq{l = t} \} : \{ \seq{l : T} \}
+}
+
+% selection
+\inferrule[\textsc{T-Select}] {
+  \Gamma ; \Sigma \vdash t : \{ \seq{l : T} \}
+} {
+  \Gamma ; \Sigma \vdash t.l_i : T_i
+}
+
+% spore
+\inferrule[\textsc{T-Spore}] {
+  \Gamma ; \Sigma \vdash \seq{t} : \seq{T} \quad \seq{x : T}, x : T ; \Sigma \vdash t : T'
+} { 
+  \Gamma ; \Sigma \vdash (\texttt{spore}~\{~\seq{x : T = t}~; (x: T) \Rightarrow t~\}) : T \Rightarrow T'~\{~\texttt{type}~\mathcal{C} = \seq{T}~\}
+}
+
+% spawn
+\inferrule[\textsc{T-Spawn}] {
+  \Gamma ; \Sigma \vdash t : (\{\} \Rightarrow T~\{~\texttt{type}~\mathcal{C} = \seq{T}~\})
+} {
+  \Gamma ; \Sigma \vdash \texttt{spawn}(t) : \texttt{Host}
+}
+
+% populate
+\inferrule[\textsc{T-Populate}] {
+  \Gamma ; \Sigma \vdash t : \texttt{Host} \quad \Gamma ; \Sigma \vdash t' : T
+} {
+  \Gamma ; \Sigma \vdash \texttt{populate}(t, t') : \texttt{SiloRef}[T]
+}
+
+% map
+\inferrule[\textsc{T-Map}] {
+  \Gamma ; \Sigma \vdash t : \texttt{SiloRef}[T] \quad \Gamma ; \Sigma \vdash t' : (T \Rightarrow T'~\{~\texttt{type}~\mathcal{C} = \seq{T}~\})
+} {
+  \Gamma ; \Sigma \vdash \texttt{map}(t, t') : \texttt{SiloRef}[T']
+}
+
+% flatMap
+\inferrule[\textsc{T-FMap}] {
+  \Gamma ; \Sigma \vdash t : \texttt{SiloRef}[T] \quad \Gamma ; \Sigma \vdash t' : (T \Rightarrow \texttt{SiloRef}[T']~\{~\texttt{type}~\mathcal{C} = \seq{T}~\})
+} {
+  \Gamma ; \Sigma \vdash \texttt{flatMap}(t, t') : \texttt{SiloRef}[T']
+}
+
+% persist
+\inferrule[\textsc{T-Persist}] {
+  \Gamma ; \Sigma \vdash t : \texttt{SiloRef}[T]
+} {
+  \Gamma ; \Sigma \vdash \texttt{persist}(t) : \texttt{SiloRef}[T]
+}
+
+% send
+\inferrule[\textsc{T-Send}] {
+  \Gamma ; \Sigma \vdash t : \texttt{SiloRef}[T]
+} {
+  \Gamma ; \Sigma \vdash \texttt{send}(t) : \texttt{Future}[T]
+}
+
+% await
+\inferrule[\textsc{T-Await}] {
+  \Gamma ; \Sigma \vdash t : \texttt{Future}[T]
+} {
+  \Gamma ; \Sigma \vdash \texttt{await}(t) : T
+}
+
+%         \gap ~|~  \iota                                                             & \mbox{future} \\
+%\gap ~|~  h                                                                 & \mbox{host} \\
+
+
+\end{mathpar}
+\caption{Type assignment.}
+\end{figure}
 
 \newpage
 
