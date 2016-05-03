@@ -37,8 +37,11 @@
 \newcommand{\Some}[1]{\text{Some}(#1)}
 \newcommand{\Val}[1]{\text{Val}(#1)}
 \newcommand{\Fwd}[1]{\text{Fwd}(#1)}
-\newcommand{\Req}[3]{\text{Req}(#1, #2, #3)}
-\newcommand{\Res}[3]{\text{Res}(#1, #2, #3)}
+\newcommand{\Req}[3]{\text{Req}_s(#1, #2, #3)}
+\newcommand{\Res}[3]{\text{Res}_s(#1, #2, #3)}
+\newcommand{\ReqF}[3]{\text{Req}_{\iota}(#1, #2, #3)}
+\newcommand{\ResF}[2]{\text{Res}_{\iota}(#1, #2)}
+\newcommand{\ReqE}[3]{\text{Req}_f(#1, #2, #3)}
 \newcommand{\Per}[3]{\text{Persist}(#1, #2, #3)}
 \newcommand{\consume}[3]{\text{consume}(#1, #2, #3)}
 
@@ -75,19 +78,13 @@ t ::=                                                                       & \m
 \gap ~|~  \texttt{persist}(t)                                               & \mbox{persist} \\
 \gap ~|~  \texttt{send}(t)                                                  & \mbox{send} \\           % send  :: Ref a -> Fut a
 \gap ~|~  \texttt{await}(t)                                                 & \mbox{await future} \\   % await :: Fut a -> a                        
-\gap ~|~  r                                                                 & \mbox{silo reference} \\                          
-\gap ~|~  \iota                                                             & \mbox{future} \\
-\gap ~|~  h                                                                 & \mbox{host} \\
+\gap ~|~  \iota                                                                 & \mbox{location} \\                          
                                                                             & \\                                
 v ::=                                                                       & \mbox{{\it{values:}}} \\                                
 \gap \:\:\:\: (x: T) \Rightarrow t                                          & \mbox{abstraction value} \\                                
 \gap ~|~  \{ \seq{l = v} \}                                                 & \mbox{record value} \\                                
-\gap ~|~  p                                                                 & \mbox{spore value} \\                                
-\gap ~|~  r                                                                 & \mbox{silo reference} \\                                
-\gap ~|~  \iota                                                             & \mbox{future value} \\
-\gap ~|~  h                                                                 & \mbox{host value} \\
-p ::=     \texttt{spore}~\{~\seq{x : T = v}~; (x: T) \Rightarrow t~\}       & \mbox{spore value} \\     
-\iota  ::= (h,i) \quad \text{where}~i \in \mathbb{N}                        & \mbox{future value} \\
+\gap ~|~  \texttt{spore}~\{~\seq{x : T = v}~; (x: T) \Rightarrow t~\}                                                                 & \mbox{spore value} \\                                
+\gap ~|~  \iota                                                             & \mbox{location} \\
                                                                             & \\   
 T ::=                                                                       & \mbox{{\it{types:}}} \\                          
 \gap \:\:\:\: T \Rightarrow T                                               & \mbox{function type} \\                          
@@ -119,17 +116,21 @@ $\iota$ .... decentralized identifier
 \centering
 
 $\ba[t]{l@{\hspace{2mm}}l}
-r ::=                                               & \mbox{{\it{silo reference values:}}} \\
-\gap \:\:\:\: \text{Mat}(\iota)                     & \mbox{materialized} \\    
-\gap ~|~  \text{Mapped}(\iota, r, p, opt_f)         & \mbox{lineage with \texttt{map}} \\    
-\gap ~|~  \text{FMapped}(\iota, r, p, opt_f)        & \mbox{lineage with \texttt{flatMap}} \\   
-\gap ~|~  \text{Persist}(\iota, r)                  & \mbox{lineage with \texttt{persist}} \\
-                                                    & \\   
-Q      ::=                                          & \mbox{{\it{message queue values:}}} \\
-\gap \:\:\:\: \epsilon                              & \mbox{empty queue} \\
-\gap ~|~    {\Res \iota v P} :: Q                     & \mbox{response} \\
-\gap ~|~    {\Req h r \iota} :: Q                   & \mbox{request}  \\
-\gap ~|~    \text{ReqF}(h, r, \iota) \texttt{::} Q  & \mbox{request (fault)} \\
+r ::=                                                  & \mbox{{\it{silo reference values:}}} \\
+\gap \:\:\:\: \text{Mat}(\omega)                       & \mbox{materialized} \\    
+\gap ~|~  \text{Mapped}(\omega, r, p, opt_f)           & \mbox{lineage with \texttt{map}} \\    
+\gap ~|~  \text{FMapped}(\omega, r, p, opt_f)          & \mbox{lineage with \texttt{flatMap}} \\   
+\gap ~|~  \text{Persist}(\omega, r)                    & \mbox{lineage with \texttt{persist}} \\
+                                                       & \\   
+\omega  ::= (h,i) \quad \text{where}~i \in \mathbb{N}  & \mbox{decentralized identifier} \\
+                                                       & \\
+Q      ::=                                             & \mbox{{\it{message queue values:}}} \\
+\gap \:\:\:\: \epsilon                                 & \mbox{empty queue} \\
+\gap ~|~    {\Res \omega v P} :: Q                     & \mbox{response (silo)} \\
+\gap ~|~    {\Req h r \omega} :: Q                     & \mbox{request (silo)}  \\
+\gap ~|~    {\ResF \iota v P} :: Q                     & \mbox{response (future)} \\
+\gap ~|~    {\ReqF h r \iota} :: Q                     & \mbox{request (future)}  \\
+\gap ~|~    {\ReqE h r \omega} :: Q                    & \mbox{request (fault)} \\
 \ea$
 
 \caption{Elements of the operational model.}
@@ -138,7 +139,7 @@ Q      ::=                                          & \mbox{{\it{message queue v
 \end{figure}
 
 \begin{description}
-\item[$\iota$] Encodes latency, in terms of completion of a materialization of a silo, as well as the location of the either already materialized or to be materialized silo. The location, in turn, serves as the unique, decentralized identifier of the respective silo reference.
+%\item[$\iota$] Encodes latency, in terms of completion of a materialization of a silo, as well as the location of the either already materialized or to be materialized silo. The location, in turn, serves as the unique, decentralized identifier of the respective silo reference.
 
 % << Network communication >>
 %
@@ -233,10 +234,10 @@ E ::=                                                                           
 
 \begin{defn}[Silo reference identifier]
     $id(r) := \begin{cases}
-    \iota  & \text{if } r = Mat(\iota) \\
-    \iota  & \text{if } r = Mapped(\iota, r', \_, \_) \\
-    \iota  & \text{if } r = FMapped(\iota, r', \_, \_) \\
-    \iota  & \text{if } r = Persist(\iota, r', \_) \\
+    \omega  & \text{if } r = Mat(\omega) \\
+    \omega  & \text{if } r = Mapped(\omega, r', \_, \_) \\
+    \omega  & \text{if } r = FMapped(\omega, r', \_, \_) \\
+    \omega  & \text{if } r = Persist(\omega, r', \_) \\
     \end{cases}$
 \end{defn}
 
@@ -250,10 +251,10 @@ E ::=                                                                           
 \end{defn}
 
 \begin{defn}[Consume silo]
-Consume silo $\iota$ with persist set $P$ in silo store $S$ \\
-  $consume(\iota, P, S) := \begin{cases}
-  S - \iota & \text{if } P = \emptyset \\
-  S         & \text{otherwise} \\
+Consume silo $\omega$ with persist set $P$ in silo store $S$ \\
+  $consume(\omega, P, S) := \begin{cases}
+  S - \omega & \text{if } P = \emptyset \\
+  S          & \text{otherwise} \\
   \end{cases}$
 \end{defn}
 
@@ -270,57 +271,61 @@ Consume silo $\iota$ with persist set $P$ in silo store $S$ \\
 
 \begin{mathpar}
 \inferrule[\textsc{R-AppAbs}] {} {
-  E[((x: T) \Rightarrow t)~v']
+  E[((x: T) \Rightarrow t)~v']~|~\mu
   \rightarrow^h
-  E[[x \mapsto v']t]
+  E[[x \mapsto v']t]~|~\mu
 }
 
 \inferrule[\textsc{R-ProjRcd}] {} {
-  E[\{\seq{l_i = v_i^{i \in 1..n}}\}.l_j]
+  E[\{\seq{l_i = v_i^{i \in 1..n}}\}.l_j]~|~\mu
   \rightarrow^h
-  E[v_j]
+  E[v_j]~|~\mu
 }
 
 \inferrule[\textsc{R-AppSpore}] {} {
-  E[(\texttt{spore}~\{~\seq{x : T = v}~; (x: T) \Rightarrow t~\})~v']
+  E[(\texttt{spore}~\{~\seq{x : T = v}~; (x: T) \Rightarrow t~\})~v']~|~\mu
   \rightarrow^h
-  E[\seq{[x \mapsto v]}[x \mapsto v']t]
+  E[\seq{[x \mapsto v]}[x \mapsto v']t]~|~\mu
 }
 
 \inferrule[\textsc{R-Map}] { 
   r' = \text{Mapped}((h, i), r, p, \text{None}) \quad
-  i~\text{fresh}
+  i~\text{fresh} \quad
+  \mu' = \mu + (\iota \mapsto r') \quad \iota~\text{fresh}
 } { 
-  E[\texttt{map}(r, p)]
+  E[\texttt{map}(r, p)]~|~\mu
   \rightarrow^h
-  E[r']
+  E[\iota]~|~\mu'
 }
 
 \inferrule[\textsc{R-FMap}] { 
   r' = \text{FMapped}((h, i), r, p, \text{None}) \quad
-  i~\text{fresh}
+  i~\text{fresh} \quad
+  \mu' = \mu + (\iota \mapsto r') \quad \iota~\text{fresh}
 } {
-  E[\texttt{flatMap}(r, p)]
+  E[\texttt{flatMap}(r, p)]~|~\mu
   \rightarrow^h
-  E[r']
+  E[\iota]~|~\mu'
 }
 
 \inferrule[\textsc{R-Persist}] { 
   r' = \text{Persist}((h, i), r, \cdot \cup \cdot) \quad
-  i~\text{fresh}
+  i~\text{fresh} \quad
+  \mu' = \mu + (\iota \mapsto r') \quad \iota~\text{fresh}
 } { 
-  E[\texttt{persist}(r)]
+  E[\texttt{persist}(r)]~|~\mu
   \rightarrow^h
-  E[r']
+  E[\iota]~|~\mu'
 }
 
 \inferrule[\textsc{R-Unpersist}] { 
   r' = \text{Persist}((h, i), r, \cdot \setminus \cdot) \quad
-  i~\text{fresh}
+  i~\text{fresh} \quad
+  \mu' = \mu + (\iota \mapsto r') \quad \iota~\text{fresh}
 } { 
-  E[\texttt{unpersist}(r)]
+  E[\texttt{unpersist}(r)]~|~\mu
   \rightarrow^h
-  E[r']
+  E[\iota]~|~\mu'
 }
 
 \end{mathpar}
@@ -349,22 +354,65 @@ Our formalization simplifies the computation model with respect to materialized 
 
 \begin{mathpar}
 \inferrule[\textsc{R-Seq}] { 
-  E[t] \rightarrow^h E[t']
+  E[t]~|~\mu \rightarrow^h E[t']~|~\mu'
 } {
-  (E[t], Q, S)^h
+  (E[t], \mu, Q, S)^h
   \longrightarrow
-  (E[t'], Q, S)^h
+  (E[t'], \mu', Q, S)^h
 }
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\inferrule[\textsc{R-Await}] {
-  S(\iota) = \text{Some}(\Val{v}, P)
+\inferrule[\textsc{R-SendLocal}] {
+  \mu(\iota) = r                         \quad
+  host(r) = h                            \quad
+  \iota'~\text{fresh}                    \quad
+  \mu' = [\iota' \mapsto \text{None}]\mu
 } {
-  (E[\texttt{await}(\iota)], Q, S)^h
-  \longrightarrow
-  (E[v], Q, S)^h
+  (E[\texttt{send}(\iota)], \mu, Q, S)^h
+  \rightarrow
+  (E[\iota'], \mu', Q \cdot {\ReqF h r \iota'}, S)^h
 }
+
+\inferrule[\textsc{R-Await}] {
+  \mu(\iota) = \text{Some}(v)
+} {
+  (E[\texttt{await}(\iota)], \mu, Q, S)^h
+  \longrightarrow
+  (E[v], \mu, Q, S)^h
+}
+
+\inferrule[\textsc{R-ReqF1}] {
+  Q        = {\ReqF h r \iota} :: Q'    \quad
+  S(id(r)) = \text{Some}(\Val{v}, P)    \quad
+  S'       = {\consume {id(r)} P S}
+} {
+  (E[\texttt{await}(\iota')], \mu, Q, S)^h
+  \longrightarrow
+  (E[\texttt{await}(\iota')], \mu, Q' \cdot {\ResF \iota v}, S')^h
+}
+
+\inferrule[\textsc{R-ReqF2}] {
+  Q        = {\ReqF h r \iota} :: Q'    \quad
+  S(id(r)) \neq \text{Some}(\Val{v}, P)
+} {
+  (E[\texttt{await}(\iota')], \mu, Q, S)^h
+  \longrightarrow
+  (E[\texttt{await}(\iota')], \mu, Q' \cdot {\Req h r {id(r)}} \cdot {\ReqF h r \iota}, S')^h
+}
+
+\inferrule[\textsc{R-ResF}] {
+  Q  = {\ResF \iota v} :: Q'          \\
+  \mu' = [\iota \mapsto \text{Some}(v)]\mu
+} {
+  (E[\texttt{await}(\iota')], \mu, Q, S)^h
+  \longrightarrow
+  (E[\texttt{await}(\iota')], \mu', Q', S)^h
+}
+
+\end{mathpar}
+\caption{Deterministic reduction (future).}
+\end{figure}
 
 % Note: design approach is to *not* replace Fwds in the silo store, since
 % it would require copying data. Instead, we leverage the flexibility of
@@ -376,94 +424,93 @@ Our formalization simplifies the computation model with respect to materialized 
 % updates silo store.
 % Goal: theorem which states that persist sets are "correct".
 % We don't lose hosts from persist sets.
+
+\begin{figure}[ht!]
+\centering
+
+\begin{mathpar}
+
 \inferrule[\textsc{R-Res}] {
-  Q  = {\Res \iota v P} :: Q'          \quad
-  S' = S + (\iota \mapsto (\Val{v}, P))
+  Q  = {\Res \omega v P} :: Q'          \\
+  S' = S + (\omega \mapsto (\Val{v}, P))
 } {
-  (E[\texttt{await}(\iota')], Q, S)^h
+  (E[\texttt{await}(\iota)], \mu, Q, S)^h
   \longrightarrow
-  (E[\texttt{await}(\iota')], Q', S')^h
+  (E[\texttt{await}(\iota)], \mu, Q', S')^h
 }
 
 \inferrule[\textsc{R-Req1Local}] {
-  Q         = {\Req h r \iota} :: Q'         \quad %
+  Q         = {\Req h r \omega} :: Q'        \quad %
   S(id(r))  = \text{Some}(\Fwd{r'}, P)       \quad %
   S(id(r')) = \text{Some}(\Val{v}, P')       \quad %
 } {
-  (E[\texttt{await}(\iota')], Q, S)^h
+  (E[\texttt{await}(\iota)], \mu, Q, S)^h
   \rightarrow
-  (E[\texttt{await}(\iota')], Q' \cdot {\Res \iota v P}, S')^h
+  (E[\texttt{await}(\iota)], \mu, Q' \cdot {\Res \omega v P}, S')^h
 }
 
 \inferrule[\textsc{R-Req2Local}] {
-  Q         = {\Req h r \iota} :: Q'               \quad %
+  Q         = {\Req h r \omega} :: Q'              \quad %
   S(id(r))  = \text{Some}(\Fwd{r'}, P)             \quad %
   S(id(r')) \neq \text{Some}(\Val{v}, P')          \quad %
 } {
-  (E[\texttt{await}(\iota')], Q, S)^h
+  (E[\texttt{await}(\iota)], \mu, Q, S)^h
   \rightarrow
-  (E[\texttt{await}(\iota')], Q' \cdot {\Req h {r'} \iota}, S')^h
+  (E[\texttt{await}(\iota)], \mu, Q' \cdot {\Req h {r'} \omega}, S')^h
 }
 
 \inferrule[\textsc{R-ReqMapLocal}] {
-  Q          = {\Req {h'} r \iota} :: Q'                   \quad %
-  r          = \text{Mapped}(\iota', r', p, \text{None})   \quad %
-  S(id(r'))  = \text{Some}(\Val{v}, P)                     \\
-  v'         = p(v)                                        \quad %
-  S'         = S  + (\iota' \mapsto (\Val{v'}, \emptyset))  \quad %
+  Q          = {\Req {h'} r \omega} :: Q'                    \quad %
+  r          = \text{Mapped}(\omega', r', p, \text{None})    \quad %
+  S(id(r'))  = \text{Some}(\Val{v}, P)                       \\
+  v'         = p(v)                                          \quad %
+  S'         = S  + (\omega' \mapsto (\Val{v'}, \emptyset))  \quad %
   S''        = {\consume {id(r')} P {S'}}
 } {
-  (E[\texttt{await}(\iota'')], Q, S)^h
+  (E[\texttt{await}(\iota)], \mu, Q, S)^h
   \rightarrow
-  (E[\texttt{await}(\iota'')], Q' \cdot {\Req {h'} r \iota}, S'')^h
+  (E[\texttt{await}(\iota)], \mu, Q' \cdot {\Req {h'} r \omega}, S'')^h
 }
 
 \inferrule[\textsc{R-ReqFMapLocal}] {
-  Q          = {\Req {h'} r \iota} :: Q'                   \quad %
-  r          = \text{FMapped}(\iota', r', p, \text{None})  \quad %
+  Q          = {\Req {h'} r \omega} :: Q'                   \quad %
+  r          = \text{FMapped}(\omega', r', p, \text{None})  \quad %
   S(id(r'))  = \text{Some}(\Val{v}, P)                     \\
   r''        = p(v)                                        \quad %
-  S'         = S + (\iota' \mapsto (\Fwd{r''}, \emptyset)) \quad
+  S'         = S + (\omega' \mapsto (\Fwd{r''}, \emptyset)) \quad
   S''        = {\consume {id(r')} P {S'}}
 } {
-  (E[\texttt{await}(\iota'')], Q, S)^h
+  (E[\texttt{await}(\iota)], \mu, Q, S)^h
   \rightarrow
-  (E[\texttt{await}(\iota'')], Q' \cdot {\Req {h'} {r''} \iota}, S'')^h
+  (E[\texttt{await}(\iota)], \mu, Q' \cdot {\Req {h'} {r''} \omega}, S'')^h
 }
 
 \inferrule[\textsc{R-ReqPersistLocal}] {
-  Q          = {\Req h r \iota} :: Q'                      \quad %
-  r          = {\Per {\iota'} {r'} \star}                  \quad %
-  \iota'     = (h, i)                                      \quad %
+  Q          = {\Req h r \omega} :: Q'                      \quad %
+  r          = {\Per {\omega'} {r'} \star}                  \quad %
+  \omega'    = (h, i)                                      \quad %
   S(id(r'))  = \text{Some}(\Val{v}, P)                     \\
   P'         = P \star \{h\}                               \quad %
-  S'         = S  + (\iota' \mapsto (\Val{v}, P'))         \quad %
+  S'         = S  + (\omega' \mapsto (\Val{v}, P'))         \quad %
   S''        = {\consume {id(r')} P {S'}}
 } {
-  (E[\texttt{await}(\iota'')], Q,  S)^h
+  (E[\texttt{await}(\iota)], \mu, Q,  S)^h
   \rightarrow
-  (E[\texttt{await}(\iota'')], Q' \cdot {\Res \iota v {P'}}, S'')^h
+  (E[\texttt{await}(\iota)], \mu, Q' \cdot {\Res \omega v {P'}}, S'')^h
 }
 
 \inferrule[\textsc{R-ReqParentLocal}] {
-  Q               = {\Req {h'} r \iota} :: Q'  \quad %
+  Q               = {\Req {h'} r \omega} :: Q'  \quad %
   \text{Some}(r') = parent(r)                  \quad %
   S(id(r'))     \neq \text{Some}(\Val{v}, P)   \\
 } {
-  (E[\texttt{await}(\iota')], Q, S)^h
+  (E[\texttt{await}(\iota)], \mu, Q, S)^h
   \rightarrow
-  (E[\texttt{await}(\iota')], Q' \cdot {\Req h {r'} {id(r')}} \cdot {\Req {h'} r \iota}, S)^h
+  (E[\texttt{await}(\iota)], \mu, Q' \cdot {\Req h {r'} {id(r')}} \cdot {\Req {h'} r \omega}, S)^h
 }
 
-\inferrule[\textsc{R-SendLocal}] {
-  host(r) = h \quad \iota = (h, i) \quad i~\text{fresh}
-} {
-  (E[\texttt{send}(r)], Q, S)^h
-  \rightarrow
-  (E[\iota], Q \cdot {\Req h r \iota}, S)^h
-}
 \end{mathpar}
-\caption{Deterministic reduction.}
+\caption{Deterministic reduction (silo).}
 \end{figure}
 
 \begin{description}[font=\normalfont\itshape\space]
@@ -513,28 +560,30 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
 \begin{figure}[ht!]
 \begin{mathpar}
 \inferrule[\textsc{R-Determ}] {
-  (t, Q, S)^h \rightarrow (t', Q', S')^h
+  (t, \mu, Q, S)^h \rightarrow (t', \mu', Q', S')^h
 } { 
-  \{ (t, Q, S)^h \} \cup H
+  \{ (t, \mu, Q, S)^h \} \cup H
   \twoheadrightarrow
-  \{ (t', Q', S')^h \} \cup H
+  \{ (t', \mu', Q', S')^h \} \cup H
 }
 
 \inferrule[\textsc{R-Spawn}] { 
   h'~\text{fresh}
 } {
-  \{ (E[\texttt{spawn}(\texttt{spore}~\{~\seq{x : T = v}~; (x: T) \Rightarrow t~\})], Q, S)^h \} \cup H
+  \{ (E[\texttt{spawn}(\texttt{spore}~\{~\seq{x : T = v}~; (x: T) \Rightarrow t~\})], \mu, Q, S)^h \} \cup H
   \\ \twoheadrightarrow
-  \{ (E[h'], Q, S)^h, ((\texttt{spore}~\{~\seq{x : T = v}~; (x: T) \Rightarrow t~\})~\{\}, \epsilon, \epsilon)^{h'} \} \cup H
+  \{ (E[h'], \mu, Q, S)^h, ((\texttt{spore}~\{~\seq{x : T = v}~; (x: T) \Rightarrow t~\})~\{\}, \epsilon, \epsilon, \epsilon)^{h'} \} \cup H
 }
 
 % TODO send spore instead of a value `v`
 \inferrule[\textsc{R-Populate}] { 
-  S'' = S' + (\iota \mapsto v) \quad \iota = (h', i) \quad i, r~\text{fresh}
+  S''    = S' + (\omega \mapsto v)      \quad
+  \omega = (h', i) \quad i~\text{fresh} \quad
+  \mu'' = [\iota \mapsto \text{Mat}(\omega)]\mu \quad \iota~\text{fresh}
 } {
-  \{ (E[\texttt{populate}(h', v)], Q, S)^h, (t', Q', S')^{h'} \} \cup H
+  \{ (E[\texttt{populate}(h', v)], \mu, Q, S)^h, (t', \mu', Q', S')^{h'} \} \cup H
   \twoheadrightarrow
-  \{ (E[r], Q, S)^h, (t', Q', S'')^{h'} \} \cup H
+  \{ (E[\iota], \mu'', Q, S)^h, (t', \mu', Q', S'')^{h'} \} \cup H
 }
 
 \inferrule[\textsc{R-Req1}] { 
