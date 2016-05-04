@@ -12,6 +12,7 @@
 %% Math
 \theoremstyle{definition}
 \newtheorem{defn}{Definition}[section]
+\newtheorem{thm}{Theorem}[section]
 
 %\theoremstyle{definition}
 %\newmdtheoremenv[hidealllines=true,topline=true,bottomline=true,skipabove=\baselineskip,skipbelow=\baselineskip]{defn}{Definition}[section]
@@ -39,16 +40,17 @@
 \newcommand{\Fwd}[1]{\text{Fwd}(#1)}
 \newcommand{\Req}[3]{\text{Req}_s(#1, #2, #3)}
 \newcommand{\Res}[3]{\text{Res}_s(#1, #2, #3)}
-\newcommand{\ReqF}[3]{\text{Req}_{\iota}(#1, #2, #3)}
-\newcommand{\ResF}[2]{\text{Res}_{\iota}(#1, #2)}
+\newcommand{\ReqF}[2]{\text{Req}_{\iota}(#1, #2)}
 \newcommand{\ReqE}[3]{\text{Req}_f(#1, #2, #3)}
 \newcommand{\Per}[3]{\text{Persist}(#1, #2, #3)}
 \newcommand{\consume}[3]{\text{consume}(#1, #2, #3)}
 
 \begin{document}
 
-\todo[inline]{Turn into a typed calculus}
+\todo[inline]{Conclude Part 2 and 3 of Subject Reduction}
 \todo[inline]{Fix fault tolerance}
+\todo[inline]{Related work}
+\todo[inline]{Verbalize formalization}
 \todo[inline]{Fix memory handling\\[2ex] IDEA: provide explicit operators for memory handling; a subsequent static analysis would augment those explicit declaration with further usage of those explicit operators; i.e., a static analysis yields a composition of those memory handling primitives\\[2ex] First approach: incorporate reference counting}
 
 \newpage
@@ -128,8 +130,7 @@ Q      ::=                                             & \mbox{{\it{message queu
 \gap \:\:\:\: \epsilon                                 & \mbox{empty queue} \\
 \gap ~|~    {\Res \omega v P} :: Q                     & \mbox{response (silo)} \\
 \gap ~|~    {\Req h r \omega} :: Q                     & \mbox{request (silo)}  \\
-\gap ~|~    {\ResF \iota v P} :: Q                     & \mbox{response (future)} \\
-\gap ~|~    {\ReqF h r \iota} :: Q                     & \mbox{request (future)}  \\
+\gap ~|~    {\ReqF \iota \omega} :: Q                  & \mbox{request (future)}  \\
 \gap ~|~    {\ReqE h r \omega} :: Q                    & \mbox{request (fault)} \\
 \ea$
 
@@ -139,7 +140,7 @@ Q      ::=                                             & \mbox{{\it{message queu
 \end{figure}
 
 \begin{description}
-%\item[$\iota$] Encodes latency, in terms of completion of a materialization of a silo, as well as the location of the either already materialized or to be materialized silo. The location, in turn, serves as the unique, decentralized identifier of the respective silo reference.
+\item[$\iota$] Encodes latency, in terms of completion of a materialization of a silo, as well as the location of the either already materialized or to be materialized silo. The location, in turn, serves as the unique, decentralized identifier of the respective silo reference.
 
 % << Network communication >>
 %
@@ -289,43 +290,51 @@ Consume silo $\omega$ with persist set $P$ in silo store $S$ \\
 }
 
 \inferrule[\textsc{R-Map}] { 
+  \mu(\iota) = r                                \quad
   r' = \text{Mapped}((h, i), r, p, \text{None}) \quad
-  i~\text{fresh} \quad
-  \mu' = \mu + (\iota \mapsto r') \quad \iota~\text{fresh}
+  i~\text{fresh}                                \quad
+  \mu' = \mu + (\iota' \mapsto r')              \quad
+  \iota'~\text{fresh}
 } { 
-  E[\texttt{map}(r, p)]~|~\mu
+  E[\texttt{map}(\iota, p)]~|~\mu
   \rightarrow^h
-  E[\iota]~|~\mu'
+  E[\iota']~|~\mu'
 }
 
 \inferrule[\textsc{R-FMap}] { 
+  \mu(\iota) = r                                 \quad
   r' = \text{FMapped}((h, i), r, p, \text{None}) \quad
-  i~\text{fresh} \quad
-  \mu' = \mu + (\iota \mapsto r') \quad \iota~\text{fresh}
+  i~\text{fresh}                                 \quad
+  \mu' = \mu + (\iota' \mapsto r')               \quad
+  \iota'~\text{fresh}
 } {
-  E[\texttt{flatMap}(r, p)]~|~\mu
+  E[\texttt{flatMap}(\iota, p)]~|~\mu
   \rightarrow^h
-  E[\iota]~|~\mu'
+  E[\iota']~|~\mu'
 }
 
 \inferrule[\textsc{R-Persist}] { 
+  \mu(\iota) = r                                   \quad
   r' = \text{Persist}((h, i), r, \cdot \cup \cdot) \quad
-  i~\text{fresh} \quad
-  \mu' = \mu + (\iota \mapsto r') \quad \iota~\text{fresh}
+  i~\text{fresh}                                   \quad
+  \mu' = \mu + (\iota' \mapsto r')                 \quad
+  \iota'~\text{fresh}
 } { 
-  E[\texttt{persist}(r)]~|~\mu
+  E[\texttt{persist}(\iota)]~|~\mu
   \rightarrow^h
-  E[\iota]~|~\mu'
+  E[\iota']~|~\mu'
 }
 
 \inferrule[\textsc{R-Unpersist}] { 
+  \mu(\iota) = r                                        \quad
   r' = \text{Persist}((h, i), r, \cdot \setminus \cdot) \quad
-  i~\text{fresh} \quad
-  \mu' = \mu + (\iota \mapsto r') \quad \iota~\text{fresh}
+  i~\text{fresh}                                        \quad
+  \mu' = \mu + (\iota' \mapsto r')                      \quad
+  \iota'~\text{fresh}
 } { 
-  E[\texttt{unpersist}(r)]~|~\mu
+  E[\texttt{unpersist}(\iota)]~|~\mu
   \rightarrow^h
-  E[\iota]~|~\mu'
+  E[\iota']~|~\mu'
 }
 
 \end{mathpar}
@@ -363,15 +372,28 @@ Our formalization simplifies the computation model with respect to materialized 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\inferrule[\textsc{R-SendLocal}] {
+\inferrule[\textsc{R-Send1Local}] {
+  \mu(\iota) = r                            \quad
+  host(r) = h                               \quad
+  S(id(r)) = \text{Some}(\Val{v}, P)        \\
+  \iota'~\text{fresh}                       \quad
+  \mu' = [\iota' \mapsto \text{Some}(v)]\mu
+} {
+  (E[\texttt{send}(\iota)], \mu, Q, S)^h
+  \longrightarrow
+  (E[\iota'], \mu', Q, S)^h
+}
+
+\inferrule[\textsc{R-Send2Local}] {
   \mu(\iota) = r                         \quad
-  host(r) = h                            \quad
+  host(r)    = h                         \quad
+  S(id(r)) \neq \text{Some}(\Val{v}, P)  \\
   \iota'~\text{fresh}                    \quad
   \mu' = [\iota' \mapsto \text{None}]\mu
 } {
   (E[\texttt{send}(\iota)], \mu, Q, S)^h
-  \rightarrow
-  (E[\iota'], \mu', Q \cdot {\ReqF h r \iota'}, S)^h
+  \longrightarrow
+  (E[\iota'], \mu', Q \cdot {\Req h r {id(r)}} \cdot {\ReqF {\iota'} {id(r)}}, S)^h
 }
 
 \inferrule[\textsc{R-Await}] {
@@ -383,31 +405,23 @@ Our formalization simplifies the computation model with respect to materialized 
 }
 
 \inferrule[\textsc{R-ReqF1}] {
-  Q        = {\ReqF h r \iota} :: Q'    \quad
-  S(id(r)) = \text{Some}(\Val{v}, P)    \quad
-  S'       = {\consume {id(r)} P S}
+  Q         = {\ReqF \iota \omega} :: Q' \quad
+  S(\omega) = \text{Some}(\Val{v}, P)    \\
+  S'        = {\consume \omega P S}      \quad
+  \mu'      = [\iota \mapsto \text{Some}(v)]\mu
 } {
   (E[\texttt{await}(\iota')], \mu, Q, S)^h
   \longrightarrow
-  (E[\texttt{await}(\iota')], \mu, Q' \cdot {\ResF \iota v}, S')^h
+  (E[\texttt{await}(\iota')], \mu', Q', S')^h
 }
 
 \inferrule[\textsc{R-ReqF2}] {
-  Q        = {\ReqF h r \iota} :: Q'    \quad
-  S(id(r)) \neq \text{Some}(\Val{v}, P)
+  Q           = {\ReqF \iota \omega} :: Q'    \quad
+  S(\omega) \neq \text{Some}(\Val{v}, P)
 } {
   (E[\texttt{await}(\iota')], \mu, Q, S)^h
   \longrightarrow
-  (E[\texttt{await}(\iota')], \mu, Q' \cdot {\Req h r {id(r)}} \cdot {\ReqF h r \iota}, S')^h
-}
-
-\inferrule[\textsc{R-ResF}] {
-  Q  = {\ResF \iota v} :: Q'          \\
-  \mu' = [\iota \mapsto \text{Some}(v)]\mu
-} {
-  (E[\texttt{await}(\iota')], \mu, Q, S)^h
-  \longrightarrow
-  (E[\texttt{await}(\iota')], \mu', Q', S)^h
+  (E[\texttt{await}(\iota')], \mu, Q' \cdot {\ReqF \iota \omega}, S')^h
 }
 
 \end{mathpar}
@@ -445,7 +459,7 @@ Our formalization simplifies the computation model with respect to materialized 
   S(id(r')) = \text{Some}(\Val{v}, P')       \quad %
 } {
   (E[\texttt{await}(\iota)], \mu, Q, S)^h
-  \rightarrow
+  \longrightarrow
   (E[\texttt{await}(\iota)], \mu, Q' \cdot {\Res \omega v P}, S')^h
 }
 
@@ -455,7 +469,7 @@ Our formalization simplifies the computation model with respect to materialized 
   S(id(r')) \neq \text{Some}(\Val{v}, P')          \quad %
 } {
   (E[\texttt{await}(\iota)], \mu, Q, S)^h
-  \rightarrow
+  \longrightarrow
   (E[\texttt{await}(\iota)], \mu, Q' \cdot {\Req h {r'} \omega}, S')^h
 }
 
@@ -468,7 +482,7 @@ Our formalization simplifies the computation model with respect to materialized 
   S''        = {\consume {id(r')} P {S'}}
 } {
   (E[\texttt{await}(\iota)], \mu, Q, S)^h
-  \rightarrow
+  \longrightarrow
   (E[\texttt{await}(\iota)], \mu, Q' \cdot {\Req {h'} r \omega}, S'')^h
 }
 
@@ -481,7 +495,7 @@ Our formalization simplifies the computation model with respect to materialized 
   S''        = {\consume {id(r')} P {S'}}
 } {
   (E[\texttt{await}(\iota)], \mu, Q, S)^h
-  \rightarrow
+  \longrightarrow
   (E[\texttt{await}(\iota)], \mu, Q' \cdot {\Req {h'} {r''} \omega}, S'')^h
 }
 
@@ -495,7 +509,7 @@ Our formalization simplifies the computation model with respect to materialized 
   S''        = {\consume {id(r')} P {S'}}
 } {
   (E[\texttt{await}(\iota)], \mu, Q,  S)^h
-  \rightarrow
+  \longrightarrow
   (E[\texttt{await}(\iota)], \mu, Q' \cdot {\Res \omega v {P'}}, S'')^h
 }
 
@@ -505,7 +519,7 @@ Our formalization simplifies the computation model with respect to materialized 
   S(id(r'))     \neq \text{Some}(\Val{v}, P)   \\
 } {
   (E[\texttt{await}(\iota)], \mu, Q, S)^h
-  \rightarrow
+  \longrightarrow
   (E[\texttt{await}(\iota)], \mu, Q' \cdot {\Req h {r'} {id(r')}} \cdot {\Req {h'} r \omega}, S)^h
 }
 
@@ -591,9 +605,9 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
   S(id(r)) = \text{Some}(\Val{v}, P)     \quad
   m        = {\Res \iota v P}
 } { 
-  \{ (E[\texttt{await}(\iota')], Q, S)^h, (t', Q', S')^{h'} \} \cup H
+  \{ (E[\texttt{await}(\iota')], \mu, Q, S)^h, (t', \mu', Q', S')^{h'} \} \cup H
   \twoheadrightarrow
-  \{ (E[\texttt{await}(\iota')], Q'', S)^h, (t', Q' \cdot m, S')^{h'} \} \cup H
+  \{ (E[\texttt{await}(\iota')], \mu, Q'', S)^h, (t', \mu', Q' \cdot m, S')^{h'} \} \cup H
 }
 
 % Rules that send Req:
@@ -610,9 +624,9 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
   S(id(r')) = \text{Some}(\Val{v}, P')             \quad %
   m        = {\Res \iota v P}
 } {
-  \{ (E[\texttt{await}(\iota')], Q, S)^h, (t', Q', S')^{h'} \} \cup H
+  \{ (E[\texttt{await}(\iota')], \mu, Q, S)^h, (t', \mu', Q', S')^{h'} \} \cup H
   \twoheadrightarrow
-  \{ (E[\texttt{await}(\iota')], Q'', S)^h, (t', Q' \cdot m, S')^{h'} \} \cup H
+  \{ (E[\texttt{await}(\iota')], \mu, Q'', S)^h, (t', \mu', Q' \cdot m, S')^{h'} \} \cup H
 }
 
 % 1. Angenommen Host h hat einen \Fwd{r'}, dann wissen wir nicht, 
@@ -637,17 +651,21 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
   h'        = host(r')                               \quad %
   m         = {\Req {h''} {r'} \iota}
 } {
-  \{ (E[\texttt{await}(\iota')], Q, S)^h, (t', Q', S')^{h'} \} \cup H
+  \{ (E[\texttt{await}(\iota')], \mu, Q, S)^h, (t', \mu', Q', S')^{h'} \} \cup H
   \twoheadrightarrow
-  \{ (E[\texttt{await}(\iota')], Q'', S)^h, (t', Q' \cdot m, S')^{h'} \} \cup H
+  \{ (E[\texttt{await}(\iota')], \mu, Q'', S)^h, (t', \mu', Q' \cdot m, S')^{h'} \} \cup H
 }
 
 \inferrule[\textsc{R-Send}] {
-  host(r) = h' \quad h' \neq h \quad m = {\Req h r {id(r)}}
+  host(r) = h'                          \quad
+  h' \neq h                             \quad
+  m = {\Req h r {id(r)}}                \quad
+  \iota~\text{fresh}                    \quad
+  \mu'' = [\iota \mapsto \text{None}]\mu
 } {
-  \{ (E[\texttt{send}(r)], Q, S)^h, (t', Q', S')^{h'} \} \cup H
+  \{ (E[\texttt{send}(r)], \mu, Q, S)^h, (t', \mu', Q', S')^{h'} \} \cup H
   \twoheadrightarrow
-  \{ (E[id(r)], Q, S)^h, (t', Q' \cdot m, S')^{h'} \} \cup H
+  \{ (E[\iota], \mu'', Q, S)^h, (t', \mu', Q' \cdot m, S')^{h'} \} \cup H
 }
 
 \end{mathpar}
@@ -683,16 +701,10 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
   \Gamma ; \Sigma \vdash x : T
 }
 
-\inferrule[\textsc{T-SiloRef}] {
-  \Sigma(r) : T
-} {
-  \Gamma ; \Sigma \vdash r : \texttt{SiloRef}[T]
-}
-
-\inferrule[\textsc{T-Future}] {
+\inferrule[\textsc{T-Loc}] {
   \Sigma(\iota) : T
 } {
-  \Gamma ; \Sigma \vdash \iota : \texttt{Future}[T]
+  \Gamma ; \Sigma \vdash \iota : T
 }
 
 % abstraction
@@ -738,6 +750,7 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
 }
 
 % populate
+% TODO make async (Future[SiloRef[T]]); cf. R-Populate
 \inferrule[\textsc{T-Populate}] {
   \Gamma ; \Sigma \vdash t : \texttt{Host} \quad \Gamma ; \Sigma \vdash t' : T
 } {
@@ -779,13 +792,165 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
   \Gamma ; \Sigma \vdash \texttt{await}(t) : T
 }
 
-%         \gap ~|~  \iota                                                             & \mbox{future} \\
-%\gap ~|~  h                                                                 & \mbox{host} \\
-
-
 \end{mathpar}
 \caption{Type assignment.}
 \end{figure}
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Subject reduction.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{figure}[ht!]
+\begin{mathpar}
+
+\inferrule[\textsc{WF-Store1}] {} {
+  \emptyset \vdash \emptyset
+}
+
+\inferrule[\textsc{WF-Store2}] {
+  \Sigma \vdash \mu
+} {
+  [\iota \mapsto T]\Sigma \vdash [\iota \mapsto v]\mu
+}
+
+\inferrule[\textsc{WF-HostConfig}] {
+  \Sigma \vdash \mu              \quad
+  \Gamma ; \Sigma \vdash t : T
+} { 
+  \Sigma \vdash (t, \mu, Q, S)^h
+}
+
+\inferrule[\textsc{WF-Host1}] {} { 
+  \vdash \emptyset
+}
+
+\inferrule[\textsc{WF-Host2}] {
+  \Sigma \vdash (t, \mu, Q, S)^h  \quad
+  \vdash H
+} { 
+  \vdash \{ (t, \mu, Q, S)^h \} \cup H
+}
+
+\end{mathpar}
+\caption{Well-formedness.}
+\end{figure}
+
+
+\begin{thm}
+\emph{(Substitution Lemma)}\label{th:subst}
+If $\Gamma , x : T' ; \Sigma \vdash t : T$ and $\Gamma ; \Sigma \vdash v : T'$ then $\Gamma ; \Sigma \vdash [x \mapsto v]t : T$.
+\end{thm}
+\begin{proof}
+By induction on the derivation of $\Gamma , x : T' ; \Sigma \vdash t : T$.
+\end{proof}
+
+
+\begin{thm}
+\emph{(Subject Reduction)}\label{th:pres}
+
+\begin{enumerate}
+
+\item If $\Gamma ; \Sigma \vdash t : T$, $\Sigma \vdash \mu$ and $t~|~\mu \rightarrow^h t'~|~\mu'$ then $\Gamma ; \Sigma' \vdash t' : T$ and $\Sigma' \vdash \mu'$ for some $\Sigma' \supseteq \Sigma$.
+
+\item If $\Sigma \vdash (t, \mu, Q, S)^h$ and $(t, \mu, Q, S)^h \longrightarrow (t', \mu', Q', S')^h$ then $\Sigma' \vdash (t', \mu', Q', S')^h$ for some $\Sigma' \supseteq \Sigma$.
+
+\item If $\vdash H$ and $H \twoheadrightarrow H'$ then $\vdash H'$.
+
+\end{enumerate}
+
+\end{thm}
+\begin{proof}
+
+Part 1: by induction on a derivation of $t~|~\mu \rightarrow^h t'~|~\mu'$ with case analysis of the last applied rule.
+
+\begin{itemize}
+\item Case R-AppAbs. Then $t = E[((x : T') \Rightarrow t'')~v']$.
+\begin{enumerate}
+% 1.
+\item By the assumptions
+  \begin{enumerate}[label=(\alph*)]
+  \item $\Gamma ; \Sigma \vdash t : T$
+  \item $\Sigma \vdash \mu$
+  \item $t~|~\mu \rightarrow^h t'~|~\mu'$
+  \end{enumerate}
+% 2.
+\item By 1.a) and T-App,
+  \begin{enumerate}[label=(\alph*)]
+  \item $\Gamma ; \Sigma \vdash ((x : T') \Rightarrow t'') : T' \Rightarrow T''$
+  \item $\Gamma ; \Sigma \vdash v' : T'$
+  \end{enumerate}
+% 3.
+\item By 2.a) and T-Abs, $\Gamma , x : T' ; \Sigma \vdash t'' : T''$.
+% 4.
+\item By the assumptions and R-AppAbs
+  \begin{enumerate}[label=(\alph*)]
+  \item $t' = E[[x \mapsto v']t'']$
+  \item $\mu' = \mu$
+  \end{enumerate}
+% 5.
+\item By 2.b), 3., and Lemma~\ref{th:subst}, $\Gamma ; \Sigma \vdash [x \mapsto v']t'' : T''$.
+% 6.
+\item By 4.a) and 5., $\Gamma ; \Sigma \vdash t' : T$.
+% 7.
+\item 4.b) and 6. close this case.
+\end{enumerate}
+
+\item Cases R-ProjRcd and R-AppSpore follow analogously.
+
+\item Case R-Map. Then $t = E[\texttt{map}(\iota, p)]$.
+\begin{enumerate}
+% 1.
+\item By the assumptions
+  \begin{enumerate}[label=(\alph*)]
+  \item $\Gamma ; \Sigma \vdash t : T$
+  \item $\Sigma \vdash \mu$
+  \item $t~|~\mu \rightarrow^h t'~|~\mu'$
+  \end{enumerate}
+% 2.
+\item By 1.a) and T-Map,
+  \begin{enumerate}[label=(\alph*)]
+  \item $\Gamma ; \Sigma \vdash \texttt{map}(\iota, p) : \texttt{SiloRef}[T']$
+  \item $\Gamma ; \Sigma \vdash \iota : \texttt{SiloRef}[T'']$
+  \item $\Gamma ; \Sigma \vdash p : (T'' \Rightarrow T' \{~\texttt{type}~\mathcal{C} = \seq{T}~\})$
+  \end{enumerate}
+% 3.
+\item By the assumptions and 1.c)
+  \begin{enumerate}[label=(\alph*)]
+  \item $t' = E[\iota']$
+  \item $\mu(\iota) = r$
+  \item $r' = \text{Mapped}(\ldots)$
+  \item $i~\text{fresh}$
+  \item $\mu' = [\iota' \mapsto r']\mu$
+  \item $\iota'~\text{fresh}$
+  \end{enumerate}
+% 4.
+\item Define $\Sigma' := [\iota' \mapsto \texttt{SiloRef}[T']]\Sigma$.
+% 5.
+\item By 1.b), 3.e), 4., and WF-Store2, $\Sigma' \vdash \mu'$.
+% 6.
+\item By 4. and T-Loc, $\Gamma ; \Sigma' \vdash \iota' : \texttt{SiloRef}[T']$.
+% 7.
+\item By 2.a), 3.a), and 6., $\Gamma ; \Sigma' \vdash t' : T$.
+% 8.
+\item By 3.f) and 4., $\Sigma' \supset \Sigma$.
+% 9.
+\item 5., 7., and 8. close this case.
+\end{enumerate}
+
+\item Cases R-FMap, R-Persist, and R-Unpersist follow analogously.
+\end{itemize}
+
+Part 2: by induction on a derivation of $(t, \mu, Q, S)^h \longrightarrow (t', \mu', Q', S')^h$ with case analysis of the last applied rule.
+
+\begin{itemize}
+\item Case R-Seq. Then $t = E[T']$.
+\end{itemize}
+
+\end{proof}
 
 \newpage
 
