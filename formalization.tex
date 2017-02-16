@@ -79,7 +79,6 @@ t ::=                                                                       & \m
 \gap ~|~  \{ \seq{l = t} \}                                                 & \mbox{record construction} \\                                
 \gap ~|~  t.l                                                               & \mbox{selection} \\
 \gap ~|~  \texttt{spore}~\{~\seq{x : T = t}~; (x: T) \Rightarrow t~\}       & \mbox{spore} \\
-\gap ~|~  \texttt{spawn}(t)                                                 & \mbox{spawn host} \\
 \gap ~|~  \texttt{populate}(t, t)                                           & \mbox{populate silo} \\
 \gap ~|~  \texttt{map}(t, t)                                                & \mbox{map} \\                          
 \gap ~|~  \texttt{flatMap}(t, t)                                            & \mbox{flatMap} \\                          
@@ -228,7 +227,6 @@ E ::=                                                                           
 \gap ~|~  \{ \seq{l = v} ; l_i = E ; \seq{l' = t} \}                                                      & \mbox{record} \\
 \gap ~|~  E.l                                                                                             & \mbox{selection} \\
 \gap ~|~  \texttt{spore}~\{~\seq{x : T = v} ; x_i : T_i = E ; \seq{x' : T = t} ; (x: T) \Rightarrow t~\}  & \mbox{spore} \\
-\gap ~|~  \texttt{spawn}(E)                                                                               & \mbox{spawn} \\
 \gap ~|~  \texttt{populate}(E, t)                                                                         & \mbox{populate (host)} \\
 \gap ~|~  \texttt{populate}(v, E)                                                                         & \mbox{populate (spore)} \\
 \gap ~|~  \texttt{map}(E, t)                                                                              & \mbox{map (ref)} \\
@@ -575,16 +573,6 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
   \{ (t', \mu', Q', S')^h \} \cup H
 }
 
-\inferrule[\textsc{R-Spawn}] { 
-  h'~\text{fresh}    \quad
-  \iota~\text{fresh} \quad
-  \mu' = [\iota \mapsto h']\mu
-} {
-  \{ (E[\texttt{spawn}(\texttt{spore}~\{~\seq{x : T = v}~; (x: T) \Rightarrow t~\})], \mu, Q, S)^h \} \cup H
-  \\ \twoheadrightarrow
-  \{ (E[\iota], \mu', Q, S)^h, ((\texttt{spore}~\{~\seq{x : T = v}~; (x: T) \Rightarrow t~\})~\{\}, \epsilon, \epsilon, \epsilon)^{h'} \} \cup H
-}
-
 % TODO send spore instead of a value `v`
 \inferrule[\textsc{R-Populate}] { 
   \mu(\iota) = h'                                         \quad
@@ -771,13 +759,6 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
   \Gamma ; \Sigma ; \Delta \vdash t' : T
 } { 
   \Gamma ; \Sigma ; \Delta \vdash (t~t') : T'
-}
-
-% spawn
-\inferrule[\textsc{T-Spawn}] {
-  \Gamma ; \Sigma ; \Delta \vdash t : (\{\} \Rightarrow T~\{~\texttt{type}~\mathcal{C} = \seq{T}~\})
-} {
-  \Gamma ; \Sigma ; \Delta \vdash \texttt{spawn}(t) : \texttt{Host}
 }
 
 % populate
@@ -1635,80 +1616,6 @@ Part 3: by induction on a derivation of $H \twoheadrightarrow H'$ with case anal
 \item By 2.c), 3.a), and part 2, $\Delta' ; \Sigma' \vdash (t', \mu', Q', S')^h$ and $\Delta' \supseteq \Delta$.
 % 5.
 \item By 2.b), 3.b), 4., and WF-Host2, $\Delta' \vdash H'$.
-\end{enumerate}
-
-\item Case R-Spawn.
-\begin{enumerate}
-% 1.
-\item By the assumptions
-  \begin{enumerate}[label=(\alph*)]
-  \item $\Delta \vdash H$
-  \item $H \twoheadrightarrow H'$
-  \end{enumerate}
-% 2.
-\item By R-Spawn
-  \begin{enumerate}[label=(\alph*)]
-  \item $H = \{ (t, \mu, Q, S)^h \} \cup H''$
-  \item $t = E[\texttt{spawn}(\texttt{spore}~\{~\seq{x : T = v}~; (x: T) \Rightarrow s~\})]$
-  \item $H' = \{ (t', \mu', Q, S)^h, ((\texttt{spore}~\{~\seq{x : T = v}~; (x: T) \Rightarrow s~\})~\{\}, \epsilon, \epsilon, \epsilon)^{h'} \} \cup H''$
-  \item $t' = E[\iota]$
-  \item $\iota~\text{fresh}$  % 2.e)
-  \item $\mu' = [\iota \mapsto h']\mu$
-  \item $h'~\text{fresh}$
-  \end{enumerate}
-% 3.
-\item By 1.a), 2.a), and WF-Host2
-  \begin{enumerate}[label=(\alph*)]
-  \item $\Delta ; \Sigma \vdash (t, \mu, Q, S)^h$
-  \item $\Delta \vdash H''$
-  \end{enumerate}
-% 4.
-\item By 2.b), 3.a), and WF-HostConfig
-  \begin{enumerate}[label=(\alph*)]
-  \item $\Sigma \vdash \mu$
-  \item $\Delta \vdash S$
-  \item $\Delta ; \Sigma \vdash Q$       % 4.c)
-  \item $\Gamma ; \Sigma ; \Delta \vdash t : T'$  % 4.d)
-  \end{enumerate}
-% 5.
-\item By 2.b) and 4.d), $\Gamma ; \Sigma ; \Delta \vdash \texttt{spawn}(\texttt{spore}~\{~\seq{x : T = v}~; (x: T) \Rightarrow s~\}) : T''$.
-% 6.
-\item By 5. and T-Spawn
-  \begin{enumerate}[label=(\alph*)]
-  \item $T'' = \texttt{Host}$
-  \item $\Gamma ; \Sigma ; \Delta \vdash \texttt{spore}~\{~\seq{x : T = v}~; (x: T) \Rightarrow s~\} : (\{\} \Rightarrow \hat{T}~\{~\texttt{type}~\mathcal{C} = \seq{S}~\})$
-  \end{enumerate}
-% 7.
-\item By 6.b) and T-Spore
-  \begin{enumerate}[label=(\alph*)]
-  \item $T = \{\}$
-  \item $\seq{S} = \seq{T}$
-  \item $\Gamma ; \Sigma ; \Delta \vdash \seq{v} : \seq{T}$
-  \item $\seq{x : T} , x : \{\} ; \emptyset ; \Delta \vdash s : \hat{T}$
-  \item $\forall T_i \in \seq{T}.~serializable(T_i)$
-  \end{enumerate}
-% 8.
-\item Define $\Sigma' := [\iota \mapsto \texttt{Host}]\Sigma$.
-% 9.
-\item By 8. and T-Loc, $\Gamma ; \Sigma' ; \Delta \vdash \iota : \texttt{Host}$.
-% 10.
-\item By 2.e), 4.d), and 8., $\Gamma ; \Sigma' ; \Delta \vdash t : T'$.
-% 11.
-\item By 2.b), 2.d), 5., 6.a), 9., and 10., $\Gamma ; \Sigma' ; \Delta \vdash t' : T'$.
-% 12.
-\item By 2.f), 4.a), 8., and WF-Store2, $\Sigma' \vdash \mu'$.
-% 13.
-\item By 4.c), 8., and WF-Q1-4, $\Delta ; \Sigma' \vdash Q$.
-% 14.
-\item By 4.b), 11., 12., 13., and WF-HostConfig, $\Delta ; \Sigma' \vdash (t', \mu', Q, S)^h)$.
-% 15.
-\item By 7.c), 7.e), and Lemma~\ref{lem:ser-values}, $\emptyset ; \emptyset ; \Delta \vdash \seq{v} : \seq{T}$.
-% 16.
-\item By 7.d-e), 15., and T-Spore, $\emptyset ; \emptyset ; \Delta \vdash \texttt{spore}~\{~\seq{x : T = v}~; (x: T) \Rightarrow s~\} : (\{\} \Rightarrow \hat{T}~\{~\texttt{type}~\mathcal{C} = \seq{S}~\})$.
-% 17.
-\item By WF-Store1, WF-SiloStore1, WF-Q1, 16., and WF-HostConfig, $\Delta ; \emptyset \vdash ((\texttt{spore}~\{~\seq{x : T = v}~; (x: T) \Rightarrow s~\})~\{\}, \epsilon, \epsilon, \epsilon)^{h'}$.
-% 18.
-\item By 3.b), 14., 17., and WF-Host2, $\Delta \vdash H'$.
 \end{enumerate}
 
 \item Case R-Populate.
