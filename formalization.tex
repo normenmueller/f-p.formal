@@ -28,14 +28,21 @@
 \newcommand{\ea}{\end{array}}
 
 %% Syntax
-% Member sequences
 \newcommand{\seq}[1]{\overline{#1}}
+\newcommand{\unit}{\texttt{unit}}
+\newcommand{\Mat}[1]{\text{Mat}(#1)}
+\newcommand{\Mapped}[3]{\text{Mapped}(#1, #2, #3)}
+\newcommand{\FMapped}[3]{\text{FMapped}(#1, #2, #3)}
 
 %% Operational model
-\newcommand{\Req}[3]{\text{Req}_s(#1, #2, #3)}
-\newcommand{\Res}[3]{\text{Res}_s(#1, #2, #3)}
+\newcommand{\Req}[3]{\text{Req}(#1, #2, #3)}
+\newcommand{\Res}[2]{\text{Res}(#1, #2)}
+\newcommand{\PopReq}[2]{\text{PopReq}(#1, #2)}
+\newcommand{\PopRes}[2]{\text{PopRes}(#1, #2)}
+
 \newcommand{\ReqF}[2]{\text{Req}_{\iota}(#1, #2)}
 \newcommand{\ReqE}[3]{\text{Req}_f(#1, #2, #3)}
+\newcommand{\Per}[3]{\text{Persist}(#1, #2, #3)}
 
 %% Calculus abbreviations
 \newcommand{\None}{\text{None}}
@@ -77,27 +84,32 @@ t ::=                                                                       & \m
 %\gap ~|~  \texttt{let}~x = t~\texttt{in}~t                                  & \mbox{let binding} \\                                
 \gap ~|~  \{ \seq{l = t} \}                                                 & \mbox{record construction} \\                                
 \gap ~|~  t.l                                                               & \mbox{selection} \\
+\gap ~|~  \unit                                                             & \mbox{unit} \\
 \gap ~|~  \texttt{spore}~\{~\seq{x : T = t}~; (x: T) \Rightarrow t~\}       & \mbox{spore} \\
 \gap ~|~  \texttt{populate}(t, t)                                           & \mbox{populate silo} \\
 \gap ~|~  \texttt{map}(t, t)                                                & \mbox{map} \\                          
 \gap ~|~  \texttt{flatMap}(t, t)                                            & \mbox{flatMap} \\                          
 \gap ~|~  \texttt{send}(t)                                                  & \mbox{send} \\           % send  :: Ref a -> Fut a
 \gap ~|~  \texttt{await}(t)                                                 & \mbox{await future} \\   % await :: Fut a -> a                        
-\gap ~|~  \iota                                                             & \mbox{location} \\                          
+\gap ~|~  \iota                                                             & \mbox{decentralized identifier} \\                          
 \gap ~|~  r                                                                 & \mbox{silo reference} \\                          
+\gap ~|~  h                                                                 & \mbox{host} \\
                                                                             & \\                                
 v ::=                                                                       & \mbox{{\it{values:}}} \\                                
 \gap \:\:\:\: (x: T) \Rightarrow t                                          & \mbox{abstraction value} \\                                
 \gap ~|~  \{ \seq{l = v} \}                                                 & \mbox{record value} \\                                
+\gap ~|~  \unit                                                             & \mbox{unit} \\
 \gap ~|~  p                                                                 & \mbox{spore value} \\                                
-\gap ~|~  \iota                                                             & \mbox{location} \\
+\gap ~|~  \iota                                                             & \mbox{decentralized identifier} \\
 \gap ~|~  r                                                                 & \mbox{silo reference} \\
+\gap ~|~  h                                                                 & \mbox{host} \\
                                                                             & \\
 p ::= \texttt{spore}~\{~\seq{x : T = v}~; (x: T) \Rightarrow t~\}           & \\
                                                                             & \\   
 T ::=                                                                       & \mbox{{\it{types:}}} \\                          
 \gap \:\:\:\: T \Rightarrow T                                               & \mbox{abstraction type} \\                          
 \gap ~|~  \{ \seq{l : T} \}                                                 & \mbox{record type} \\                          
+\gap ~|~  \texttt{Unit}                                                     & \mbox{unit type} \\
 \gap ~|~  \mathcal{S}                                                       & \mbox{} \\
 \gap ~|~  \texttt{Host}                                                     & \mbox{host type} \\
 \gap ~|~  \texttt{SiloRef}[T]                                               & \mbox{silo reference type} \\
@@ -110,8 +122,6 @@ T ::=                                                                       & \m
 \end{figure}
 
 Classification of $r$ and $\iota$ is specified at Figure~\ref{fig:elems-opsem}.
-
-$\iota$ .... decentralized identifier
 
 \newpage
 
@@ -126,18 +136,18 @@ $\iota$ .... decentralized identifier
 
 $\ba[t]{l@{\hspace{2mm}}l}
 r ::=                                                  & \mbox{{\it{silo reference values:}}} \\
-\gap \:\:\:\: \text{Mat}(\omega)                       & \mbox{materialized} \\    
-\gap ~|~  \text{Mapped}(\omega, r, p)                  & \mbox{lineage with \texttt{map}} \\    
-\gap ~|~  \text{FMapped}(\omega, r, p)                 & \mbox{lineage with \texttt{flatMap}} \\   
+\gap \:\:\:\: \text{Mat}(\iota)                        & \mbox{materialized} \\    
+\gap ~|~  \text{Mapped}(\iota, r, p)                   & \mbox{lineage with \texttt{map}} \\    
+\gap ~|~  \text{FMapped}(\iota, r, p)                  & \mbox{lineage with \texttt{flatMap}} \\   
                                                        & \\   
-\omega  ::= (h,i) \quad \text{where}~i \in \mathbb{N}  & \mbox{decentralized identifier} \\
+\iota  ::= (h,i) \quad \text{where}~i \in \mathbb{N}   & \mbox{decentralized identifier} \\
                                                        & \\
 Q      ::=                                             & \mbox{{\it{message queue values:}}} \\
 \gap \:\:\:\: \epsilon                                 & \mbox{empty queue} \\
-\gap ~|~    {\Res \omega v P} :: Q                     & \mbox{response (silo)} \\
-\gap ~|~    {\Req h r \omega} :: Q                     & \mbox{request (silo)}  \\
-\gap ~|~    {\ReqF \iota \omega} :: Q                  & \mbox{request (future)}  \\
-\gap ~|~    {\ReqE h r \omega} :: Q                    & \mbox{request (fault)} \\
+\gap ~|~    {\Res \iota v} :: Q                        & \mbox{response} \\
+\gap ~|~    {\Req h r \iota} :: Q                      & \mbox{request}  \\
+%\gap ~|~    {\ReqF \iota \omega} :: Q                  & \mbox{request (future)}  \\
+%\gap ~|~    {\ReqE h r \omega} :: Q                    & \mbox{request (fault)} \\
 \ea$
 
 \caption{Elements of the operational model.}
@@ -189,11 +199,11 @@ Q      ::=                                             & \mbox{{\it{message queu
 A lineage build up by those silo reference values can be considered as a {\emph{data flow graph}}\cite{???}. %Note, verbalisation is imperative to emphasize lazy creation. 
 
 \begin{description}
-\item[${\Res \iota v P}$] A response message which instructs the receiver to complete future $\iota$ with value $v$. % TODO: explain `P`.
+\item[${\Res \iota v}$] A response message which instructs the receiver to complete future $\iota$ with value $v$. % TODO: explain `P`.
 
 \item[${\Req h r \iota}$] A request message from $h$ which instructs the receiver to respond with the materialized silo referenced by $r$; $\iota$ uniquely identifies the response in terms of the future $\iota$ to be completed by the sender of the request.
 
-\item[$ReqF(h, r, \iota)$] Analogous to $Req$.
+%\item[$ReqF(h, r, \iota)$] Analogous to $Req$.
 \end{description}
 
 In the following we introduce a function to backtrack the host of a referenced silo.
@@ -213,7 +223,7 @@ Analogous to~\cite{TAPL}, we introduce the notion of an evaluation context and w
 \begin{defn}[Evaluation Context]
   The set of evaluation contexts is defined as follows:
   
- $\ba[t]{l@{\hspace{2mm}}l}
+$\ba[t]{l@{\hspace{2mm}}l}
 E ::=                                                                                                     & \mbox{\it{evaluation contexts:}} \\
 \gap \:\:\:\: [~]                                                                                         & \mbox{hole} \\
 \gap ~|~  E~t                                                                                             & \mbox{application (fun)} \\
@@ -236,17 +246,16 @@ E ::=                                                                           
 
 \begin{defn}[Silo reference identifier]
     $id(r) := \begin{cases}
-    \omega  & \text{if } r = Mat(\omega) \\
-    \omega  & \text{if } r = Mapped(\omega, r', \_) \\
-    \omega  & \text{if } r = FMapped(\omega, r', \_) \\
+    \iota  & \text{if } r = Mat(\iota) \\
+    \iota  & \text{if } r = Mapped(\iota, r', \_) \\
+    \iota  & \text{if } r = FMapped(\iota, r', \_) \\
     \end{cases}$
 \end{defn}
 
 \begin{defn}[Silo reference parent]
     $parent(r) := \begin{cases}
-    \None     & \text{if } r = Mat(\_) \\
-    \Some{r'} & \text{if } r = Mapped(\_, r', \_) \\
-    \Some{r'} & \text{if } r = FMapped(\_, r', \_) \\
+    r' & \text{if } r = Mapped(\_, r', \_) \\
+    r' & \text{if } r = FMapped(\_, r', \_) \\
     \end{cases}$
 \end{defn}
 
@@ -263,47 +272,47 @@ E ::=                                                                           
 
 \begin{mathpar}
 \inferrule[\textsc{R-AppAbs}] {} {
-  E[((x: T) \Rightarrow t)~v']~|~\mu
+  E[((x: T) \Rightarrow t)~v']~|~\sigma
   \rightarrow^h
-  E[[x \mapsto v']t]~|~\mu
+  E[[x \mapsto v']t]~|~\sigma
 }
 
 \inferrule[\textsc{R-ProjRcd}] {} {
-  E[\{\seq{l_i = v_i^{i \in 1..n}}\}.l_j]~|~\mu
+  E[\{\seq{l_i = v_i^{i \in 1..n}}\}.l_j]~|~\sigma
   \rightarrow^h
-  E[v_j]~|~\mu
+  E[v_j]~|~\sigma
 }
 
 \inferrule[\textsc{R-AppSpore}] {} {
-  E[(\texttt{spore}~\{~\seq{x : T = v}~; (x: T) \Rightarrow t~\})~v']~|~\mu
+  E[(\texttt{spore}~\{~\seq{x : T = v}~; (x: T) \Rightarrow t~\})~v']~|~\sigma
   \rightarrow^h
-  E[\seq{[x \mapsto v]}[x \mapsto v']t]~|~\mu
+  E[\seq{[x \mapsto v]}[x \mapsto v']t]~|~\sigma
 }
 
 \inferrule[\textsc{R-Await}] {
-  \mu(\iota) = \text{Some}(v)
+  \sigma(\iota) = \Val v
 } {
-  E[\texttt{await}(\iota)]~|~\mu
+  E[\texttt{await}(\iota)]~|~\sigma
   \rightarrow^h
-  E[v]~|~\mu
+  E[v]~|~\sigma
 }
 
 \inferrule[\textsc{R-Map}] {
   r' = \text{Mapped}((h, i), r, p) \quad
   i~\text{fresh}
 } { 
-  E[\texttt{map}(r, p)]~|~\mu
+  E[\texttt{map}(r, p)]~|~\sigma
   \rightarrow^h
-  E[r']~|~\mu
+  E[r']~|~\sigma
 }
 
 \inferrule[\textsc{R-FMap}] { 
   r' = \text{FMapped}((h, i), r, p) \quad
   i~\text{fresh}
 } {
-  E[\texttt{flatMap}(r, p)]~|~\mu
+  E[\texttt{flatMap}(r, p)]~|~\sigma
   \rightarrow^h
-  E[r']~|~\mu
+  E[r']~|~\sigma
 }
 
 \end{mathpar}
@@ -331,60 +340,34 @@ Our formalization simplifies the computation model with respect to materialized 
 \centering
 
 \begin{mathpar}
-\inferrule[\textsc{R-Seq}] { 
-  E[t]~|~\mu \rightarrow^h E[t']~|~\mu'
+\inferrule[\textsc{R-Seq}] {
+  E[t]~|~\sigma \rightarrow^h E[t']~|~\sigma'
 } {
-  (E[t], \mu, Q, S)^h
+  (E[t], \sigma, Q)^h
   \longrightarrow
-  (E[t'], \mu', Q, S)^h
+  (E[t'], \sigma', Q)^h
 }
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 \inferrule[\textsc{R-Send1Local}] {
-  host(r) = h                               \quad
-  S(id(r)) = (\Val{v}, P)                   \\
-  \iota~\text{fresh}                       \quad
-  \mu' = [\iota \mapsto \text{Some}(v)]\mu
+  host(r) = h                      \quad
+  \sigma(id(r)) = \Val{v}
 } {
-  (E[\texttt{send}(r)], \mu, Q, S)^h
+  (E[\texttt{send}(r)], \sigma, Q)^h
   \longrightarrow
-  (E[\iota], \mu', Q, S)^h
+  (E[id(r)], \sigma, Q)^h
 }
 
 \inferrule[\textsc{R-Send2Local}] {
   host(r)    = h                         \quad
-  id(r) \notin dom(S)                    \\
-  \iota~\text{fresh}                    \quad
-  \mu' = [\iota \mapsto \text{None}]\mu
+  id(r) \notin dom(\sigma)
 } {
-  (E[\texttt{send}(r)], \mu, Q, S)^h
+  (E[\texttt{send}(r)], \sigma, Q)^h
   \longrightarrow
-  (E[\iota], \mu', Q \cdot {\Req h r {id(r)}} \cdot {\ReqF {\iota} {id(r)}}, S)^h
-}
-
-\inferrule[\textsc{R-ReqF1}] {
-  Q         = {\ReqF \iota \omega} :: Q' \quad
-  S(\omega) = (\Val{v}, P)               \\
-  S'        = {\consume \omega P S}      \quad
-  \mu'      = [\iota \mapsto \text{Some}(v)]\mu
-} {
-  (E[\texttt{await}(\iota')], \mu, Q, S)^h
-  \longrightarrow
-  (E[\texttt{await}(\iota')], \mu', Q', S')^h
-}
-
-\inferrule[\textsc{R-ReqF2}] {
-  Q           = {\ReqF \iota \omega} :: Q'    \quad
-  \omega \notin dom(S)
-} {
-  (E[\texttt{await}(\iota')], \mu, Q, S)^h
-  \longrightarrow
-  (E[\texttt{await}(\iota')], \mu, Q' \cdot {\ReqF \iota \omega}, S)^h
+  (E[id(r)], \sigma, Q \cdot {\Req h r {id(r)}})^h
 }
 
 \end{mathpar}
-\caption{Deterministic reduction (future).}
+\caption{Local reduction.}
 \end{figure}
 
 % Note: design approach is to *not* replace Fwds in the silo store, since
@@ -404,72 +387,80 @@ Our formalization simplifies the computation model with respect to materialized 
 \begin{mathpar}
 
 \inferrule[\textsc{R-Res}] {
-  Q  = {\Res \omega v P} :: Q'          \\
-  S' = [\omega \mapsto (\Val{v}, P)]S
+  Q       = {\Res \iota v} :: Q'          \\
+  \sigma' = [\iota \mapsto \Val{v}]\sigma
 } {
-  (E[\texttt{await}(\iota)], \mu, Q, S)^h
+  (E[\texttt{await}(\iota')], \sigma, Q)^h
   \longrightarrow
-  (E[\texttt{await}(\iota)], \mu, Q', S')^h
+  (E[\texttt{await}(\iota')], \sigma', Q')^h
 }
 
-\inferrule[\textsc{R-Req1Local}] {
-  Q         = {\Req h r \omega} :: Q'        \quad %
-  S(id(r))  = (\Fwd{r'}, P)                  \quad %
-  S(id(r')) = (\Val{v}, P')                  \quad %
+\inferrule[\textsc{R-ReqLocal}] {
+  Q             = {\Req h r \iota} :: Q'    \quad %
+  \sigma(id(r)) = \Fwd{r'}                  \quad %
+  host(r')      = h
 } {
-  (E[\texttt{await}(\iota)], \mu, Q, S)^h
+  (E[\texttt{await}(\iota')], \sigma, Q)^h
   \longrightarrow
-  (E[\texttt{await}(\iota)], \mu, Q' \cdot {\Res \omega v P}, S)^h
+  (E[\texttt{await}(\iota')], \sigma, Q' \cdot {\Req h {r'} \iota})^h
 }
 
-\inferrule[\textsc{R-Req2Local}] {
-  Q         = {\Req h r \omega} :: Q'              \quad %
-  S(id(r))  = (\Fwd{r'}, P)                        \quad %
-  id(r') \notin dom(S)                             \quad %
+\inferrule[\textsc{R-ReqMap}] {
+  Q               = {\Req {h'} r \iota} :: Q'           \quad %
+  r               = \text{Mapped}(\iota', r', p)        \quad %
+  \sigma(id(r'))  = \Val{v}                             \\
+  v'              = p(v)                                \quad %
+  \sigma'         = [\iota' \mapsto \Val{v'}]\sigma
 } {
-  (E[\texttt{await}(\iota)], \mu, Q, S)^h
+  (E[\texttt{await}(\iota'')], \sigma, Q)^h
   \longrightarrow
-  (E[\texttt{await}(\iota)], \mu, Q' \cdot {\Req h {r'} \omega}, S)^h
+  (E[\texttt{await}(\iota'')], \sigma', Q' \cdot {\Req {h'} r \iota})^h
 }
 
-\inferrule[\textsc{R-ReqMapLocal}] {
-  Q          = {\Req {h'} r \omega} :: Q'               \quad %
-  r          = \text{Mapped}(\omega', r', p)            \quad %
-  S(id(r'))  = (\Val{v}, P)                             \\
-  v'         = p(v)                                          \quad %
-  S'         = [\omega' \mapsto (\Val{v'}, \emptyset)]S      \quad %
-  S''        = {\consume {id(r')} P {S'}}
+\inferrule[\textsc{R-ReqFMap}] {
+  Q               = {\Req {h'} r \iota} :: Q'      \quad %
+  r               = \text{FMapped}(\iota', r', p)  \quad %
+  \sigma(id(r'))  = \Val{v}                   \\
+  r''             = p(v)                                        \quad %
+  \sigma'         = [\iota' \mapsto \Fwd{r''}]\sigma
 } {
-  (E[\texttt{await}(\iota)], \mu, Q, S)^h
+  (E[\texttt{await}(\iota'')], \sigma, Q)^h
   \longrightarrow
-  (E[\texttt{await}(\iota)], \mu, Q' \cdot {\Req {h'} r \omega}, S'')^h
+  (E[\texttt{await}(\iota'')], \sigma', Q' \cdot {\Req {h'} {r''} \iota})^h
 }
 
-\inferrule[\textsc{R-ReqFMapLocal}] {
-  Q          = {\Req {h'} r \omega} :: Q'      \quad %
-  r          = \text{FMapped}(\omega', r', p)  \quad %
-  S(id(r'))  = (\Val{v}, P)                    \\
-  r''        = p(v)                                        \quad %
-  S'         = [\omega' \mapsto (\Fwd{r''}, \emptyset)]S   \quad
-  S''        = {\consume {id(r')} P {S'}}
+\inferrule[\textsc{R-ReqParent}] {
+  Q  = {\Req {h'} r \iota} :: Q'  \quad %
+  r' = parent(r)                  \quad %
+  id(r') \notin dom(\sigma)
 } {
-  (E[\texttt{await}(\iota)], \mu, Q, S)^h
+  (E[\texttt{await}(\iota')], \sigma, Q)^h
   \longrightarrow
-  (E[\texttt{await}(\iota)], \mu, Q' \cdot {\Req {h'} {r''} \omega}, S'')^h
+  (E[\texttt{await}(\iota')], \sigma, Q' \cdot {\Req h {r'} {id(r')}} \cdot {\Req {h'} r \iota})^h
 }
 
-\inferrule[\textsc{R-ReqParentLocal}] {
-  Q               = {\Req {h'} r \omega} :: Q'  \quad %
-  \text{Some}(r') = parent(r)                  \quad %
-  id(r') \notin dom(S)                          \\
+\inferrule[\textsc{R-ReqMat}] {
+  Q = {\Req h r \iota} :: Q'  \quad
+  r = {\Mat {\iota'}}         \quad
+  host(r) = h                 \quad
+  \iota' \notin dom(\sigma)
 } {
-  (E[\texttt{await}(\iota)], \mu, Q, S)^h
+  (E[\texttt{await}(\iota'')], \sigma, Q)^h
   \longrightarrow
-  (E[\texttt{await}(\iota)], \mu, Q' \cdot {\Req h {r'} {id(r')}} \cdot {\Req {h'} r \omega}, S)^h
+  (E[\texttt{await}(\iota'')], \sigma, Q' \cdot {\Req h r \iota})^h
+}
+
+\inferrule[\textsc{R-PopResLocal}] {
+  Q = {\PopRes {\iota} r} :: Q'             \quad
+  \sigma' = [\iota \mapsto {\Fwd r}]\sigma
+} {
+  (E[\texttt{await}(\iota')], \sigma, Q)^h
+  \longrightarrow
+  (E[\texttt{await}(\iota')], \sigma', Q')^h
 }
 
 \end{mathpar}
-\caption{Deterministic reduction (silo).}
+\caption{Queue reduction.}
 \end{figure}
 
 \begin{description}[font=\normalfont\itshape\space]
@@ -518,34 +509,63 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
 
 \begin{figure}[ht!]
 \begin{mathpar}
-\inferrule[\textsc{R-Determ}] {
-  (t, \mu, Q, S)^h \rightarrow (t', \mu', Q', S')^h
+\inferrule[\textsc{R-Local}] {
+  (t, \sigma, Q)^h \rightarrow (t', \sigma', Q')^h
 } { 
-  \{ (t, \mu, Q, S)^h \} \cup H
+  \{ (t, \sigma, Q)^h \} \cup H
   \twoheadrightarrow
-  \{ (t', \mu', Q', S')^h \} \cup H
+  \{ (t', \sigma', Q')^h \} \cup H
 }
 
 % TODO send spore instead of a value `v`
-\inferrule[\textsc{R-Populate}] { 
-  \mu(\iota) = h'                                         \quad
-  S''        = [\omega \mapsto ({\Val v}, \emptyset)]S'   \quad
-  \omega     = (h', i)                                    \quad
-  i~\text{fresh}
+%\inferrule[\textsc{R-Populate}] { 
+%  \mu(\iota) = h'                                         \quad
+%  S''        = [\omega \mapsto {\Val v}]S'   \quad
+%  \omega     = (h', i)                                    \\
+%  i~\text{fresh} \quad
+%
+%  \iota' = (h, i) \quad i~\text{fresh} \quad % local
+%  
+%  % spaeter bekommen wir ein PopRes(\iota', r'')   kann uns r'' = Mat(\iota'') schicken
+%  % wir selber im silo store: \sigma' = [\iota' \mapsto Fwd(r'')]\sigma
+%  % p ::= \texttt{spore}~\{~\seq{x : T = v}~; (x: T) \Rightarrow t~\}           & \\
+%  %p = \texttt{spore}~\{~; (x: \{ \}) \Rightarrow v~\}
+%} {
+%  \{ (E[\texttt{populate}(h', p)], \sigma, Q)^h, (t', \sigma', Q')^{h'} \} \cup H
+%  \twoheadrightarrow
+%  \{ (E[\iota'], \sigma, Q)^h, (t', \sigma', Q' \cdot \text{PopReq}(h, p, \iota'))^{h'} \} \cup H
+%}
+
+\inferrule[\textsc{R-PopReq}] {
+  \iota = (h, i) \quad i~\text{fresh} \quad
+  r     = {\Mat \iota}                \quad
+  m     = {\PopReq h \iota }
 } {
-  \{ (E[\texttt{populate}(\iota, v)], \mu, Q, S)^h, (t', \mu', Q', S')^{h'} \} \cup H
+  \{ (E[\texttt{populate}(h')], \sigma, Q)^h, (t', \sigma', Q')^{h'} \} \cup H
   \twoheadrightarrow
-  \{ (E[\text{Mat}(\omega)], \mu, Q, S)^h, (t', \mu', Q', S'')^{h'} \} \cup H
+  \{ (E[r], \sigma, Q)^h, (t', \sigma', Q' \cdot m)^{h'} \} \cup H
+}
+
+\inferrule[\textsc{R-PopRes}] {
+  Q        = {\PopReq {h'} {\iota'}} :: Q''     \quad
+  \iota    = (h, i)                             \quad i~\text{fresh}  \\
+  r        = \text{Mat}(\iota)                  \quad
+  \sigma'' = [\iota \mapsto {\Val \unit}]\sigma \quad
+  m        = {\PopRes {\iota'} r}
+} {
+  \{ (E[\texttt{await}(\iota'')], \sigma, Q)^h, (t', \sigma', Q')^{h'} \} \cup H
+  \twoheadrightarrow
+  \{ (E[\texttt{await}(\iota'')], \sigma'', Q)^h, (t', \sigma', Q' \cdot m)^{h'} \} \cup H
 }
 
 \inferrule[\textsc{R-Req1}] {
-  Q        = {\Req {h'} r \omega} :: Q''  \quad
-  S(id(r)) = (\Val{v}, P)                 \quad
-  m        = {\Res \omega v P}
+  Q             = {\Req {h'} r \iota} :: Q''  \quad
+  \sigma(id(r)) = \Val{v}                     \quad
+  m             = {\Res \iota v}
 } {
-  \{ (E[\texttt{await}(\iota)], \mu, Q, S)^h, (t', \mu', Q', S')^{h'} \} \cup H
+  \{ (E[\texttt{await}(\iota')], \sigma, Q)^h, (t', \sigma', Q')^{h'} \} \cup H
   \twoheadrightarrow
-  \{ (E[\texttt{await}(\iota)], \mu, Q'', S)^h, (t', \mu', Q' \cdot m, S')^{h'} \} \cup H
+  \{ (E[\texttt{await}(\iota')], \sigma, Q'')^h, (t', \sigma', Q' \cdot m)^{h'} \} \cup H
 }
 
 % Rules that send Req:
@@ -556,16 +576,6 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
 % if a rule sends Req(h, r) to h', is it true that host(r) == h'?
 % XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
-\inferrule[\textsc{R-Req2}] {
-  Q         = {\Req {h'} r \omega} :: Q''           \quad %
-  S(id(r))  = (\Fwd{r'}, P)             \\ %
-  S(id(r')) = (\Val{v}, P')             \quad %
-  m         = {\Res \omega v P}
-} {
-  \{ (E[\texttt{await}(\iota)], \mu, Q, S)^h, (t', \mu', Q', S')^{h'} \} \cup H
-  \twoheadrightarrow
-  \{ (E[\texttt{await}(\iota)], \mu, Q'', S)^h, (t', \mu', Q' \cdot m, S')^{h'} \} \cup H
-}
 
 % 1. Angenommen Host h hat einen \Fwd{r'}, dann wissen wir nicht, 
 %    auf welchem Host r' liegt. Das war der eigentliche Grund, Fwd
@@ -583,27 +593,24 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
 % Regeln mit zwei unterschiedlichen Referenzen umgehen koennen, weil
 % r definitiv ungleich r' ist.
 \inferrule[\textsc{R-Req3}] {
-  Q         = {\Req {h''} r \omega} :: Q''           \quad %
-  S(id(r))  = (\Fwd{r'}, P)                          \\ %
-  id(r') \notin dom(S)                               \quad %
-  h'        = host(r')                               \quad %
-  m         = {\Req {h''} {r'} \omega}
+  Q              = {\Req {h''} r \iota} :: Q''       \quad %
+  \sigma(id(r))  = \Fwd{r'}                          \\ %
+  h'             = host(r')                          \quad %
+  m              = {\Req {h''} {r'} \iota}
 } {
-  \{ (E[\texttt{await}(\iota)], \mu, Q, S)^h, (t', \mu', Q', S')^{h'} \} \cup H
+  \{ (E[\texttt{await}(\iota')], \sigma, Q)^h, (t', \sigma', Q')^{h'} \} \cup H
   \twoheadrightarrow
-  \{ (E[\texttt{await}(\iota)], \mu, Q'', S)^h, (t', \mu', Q' \cdot m, S')^{h'} \} \cup H
+  \{ (E[\texttt{await}(\iota')], \sigma, Q'')^h, (t', \sigma', Q' \cdot m)^{h'} \} \cup H
 }
 
 \inferrule[\textsc{R-Send}] {
   host(r) = h'                          \quad
   h' \neq h                             \quad
-  m = {\Req h r {id(r)}}                \quad
-  \iota~\text{fresh}                    \quad
-  \mu'' = [\iota \mapsto \text{None}]\mu
+  m = {\Req h r {id(r)}}
 } {
-  \{ (E[\texttt{send}(r)], \mu, Q, S)^h, (t', \mu', Q', S')^{h'} \} \cup H
+  \{ (E[\texttt{send}(r)], \sigma, Q)^h, (t', \sigma', Q')^{h'} \} \cup H
   \twoheadrightarrow
-  \{ (E[\iota], \mu'', Q, S)^h, (t', \mu', Q' \cdot m, S')^{h'} \} \cup H
+  \{ (E[id(r)], \sigma, Q)^h, (t', \sigma', Q' \cdot m)^{h'} \} \cup H
 }
 
 \end{mathpar}
@@ -660,105 +667,109 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
 \inferrule[\textsc{T-Var}] {
   x : T \in \Gamma
 } { 
-  \Gamma ; \Sigma ; \Delta \vdash x : T
+  \Gamma ; \Sigma \vdash x : T
 }
 
-\inferrule[\textsc{T-Loc}] {
+\inferrule[\textsc{T-Ident}] {
   \Sigma(\iota) : T
 } {
-  \Gamma ; \Sigma ; \Delta \vdash \iota : T
+  \Gamma ; \Sigma \vdash \iota : T
 }
 
 % abstraction
 \inferrule[\textsc{T-Abs}] {
-  \Gamma, x : T ; \Sigma ; \Delta \vdash t : T'
+  \Gamma, x : T ; \Sigma \vdash t : T'
 } {
-  \Gamma ; \Sigma ; \Delta \vdash ((x: T) \Rightarrow t) : T \Rightarrow T'
+  \Gamma ; \Sigma \vdash ((x: T) \Rightarrow t) : T \Rightarrow T'
 }
 
 % application
 \inferrule[\textsc{T-App}] {
-  \Gamma ; \Sigma ; \Delta \vdash t : T \Rightarrow T' \quad
-  \Gamma ; \Sigma ; \Delta \vdash t' : T
+  \Gamma ; \Sigma \vdash t : T \Rightarrow T' \quad
+  \Gamma ; \Sigma \vdash t' : T
 } { 
-  \Gamma ; \Sigma ; \Delta \vdash (t~t') : T'
+  \Gamma ; \Sigma \vdash (t~t') : T'
 }
 
 % record
 \inferrule[\textsc{T-Record}] {
-  \Gamma ; \Sigma ; \Delta \vdash \seq{t} : \seq{T}
+  \Gamma ; \Sigma \vdash \seq{t} : \seq{T}
 } {
-  \Gamma ; \Sigma ; \Delta \vdash \{ \seq{l = t} \} : \{ \seq{l : T} \}
+  \Gamma ; \Sigma \vdash \{ \seq{l = t} \} : \{ \seq{l : T} \}
 }
 
 % selection
 \inferrule[\textsc{T-Select}] {
-  \Gamma ; \Sigma ; \Delta \vdash t : \{ \seq{l : T} \}
+  \Gamma ; \Sigma \vdash t : \{ \seq{l : T} \}
 } {
-  \Gamma ; \Sigma ; \Delta \vdash t.l_i : T_i
+  \Gamma ; \Sigma \vdash t.l_i : T_i
+}
+
+% unit
+\inferrule[\textsc{T-Unit}] {
+} {
+  \Gamma ; \Sigma \vdash \unit : \texttt{Unit}
 }
 
 % spore
 \inferrule[\textsc{T-Spore}] {
-  \Gamma ; \Sigma ; \Delta \vdash \seq{t} : \seq{T}  \quad
-  \seq{x : T}, x : T ; \emptyset ; \Delta \vdash t : T' \quad
+  \Gamma ; \Sigma \vdash \seq{t} : \seq{T}     \quad
+  \seq{x : T}, x : T ; \emptyset \vdash t : T' \quad
   \forall T_i \in \seq{T}.~serializable(T_i)
 } { 
-  \Gamma ; \Sigma ; \Delta \vdash (\texttt{spore}~\{~\seq{x : T = t}~; (x: T) \Rightarrow t~\}) : T \Rightarrow T'~\{~\texttt{type}~\mathcal{C} = \seq{T}~\}
+  \Gamma ; \Sigma \vdash (\texttt{spore}~\{~\seq{x : T = t}~; (x: T) \Rightarrow t~\}) : T \Rightarrow T'~\{~\texttt{type}~\mathcal{C} = \seq{T}~\}
 }
 
 \inferrule[\textsc{T-AppSpore}] {
-  \Gamma ; \Sigma ; \Delta \vdash t : T \Rightarrow T'~\{~\texttt{type}~\mathcal{C} = \seq{T}~\} \quad
-  \Gamma ; \Sigma ; \Delta \vdash t' : T
+  \Gamma ; \Sigma \vdash t : T \Rightarrow T'~\{~\texttt{type}~\mathcal{C} = \seq{T}~\} \quad
+  \Gamma ; \Sigma \vdash t' : T
 } { 
-  \Gamma ; \Sigma ; \Delta \vdash (t~t') : T'
+  \Gamma ; \Sigma \vdash (t~t') : T'
 }
 
 % populate
 % TODO make async (Future[SiloRef[T]]); cf. R-Populate
 \inferrule[\textsc{T-Populate}] {
-  \Gamma ; \Sigma ; \Delta \vdash t : \texttt{Host} \quad
-  \Gamma ; \Sigma ; \Delta \vdash t' : T            \quad
-  serializable(T)
+  \Gamma ; \Sigma \vdash t : \texttt{Host}
 } {
-  \Gamma ; \Sigma ; \Delta \vdash \texttt{populate}(t, t') : \texttt{SiloRef}[T]
+  \Gamma ; \Sigma \vdash \texttt{populate}(t) : \texttt{SiloRef}[\texttt{Unit}]
 }
 
 % map
 \inferrule[\textsc{T-Map}] {
-  \Gamma ; \Sigma ; \Delta \vdash t : \texttt{SiloRef}[T] \quad
-  \Gamma ; \Sigma ; \Delta \vdash t' : (T \Rightarrow T'~\{~\texttt{type}~\mathcal{C} = \seq{T}~\})
+  \Gamma ; \Sigma \vdash t : \texttt{SiloRef}[T] \quad
+  \Gamma ; \Sigma \vdash t' : (T \Rightarrow T'~\{~\texttt{type}~\mathcal{C} = \seq{T}~\})
 } {
-  \Gamma ; \Sigma ; \Delta \vdash \texttt{map}(t, t') : \texttt{SiloRef}[T']
+  \Gamma ; \Sigma \vdash \texttt{map}(t, t') : \texttt{SiloRef}[T']
 }
 
 % flatMap
 \inferrule[\textsc{T-FMap}] {
-  \Gamma ; \Sigma ; \Delta \vdash t : \texttt{SiloRef}[T] \quad
-  \Gamma ; \Sigma ; \Delta \vdash t' : (T \Rightarrow \texttt{SiloRef}[T']~\{~\texttt{type}~\mathcal{C} = \seq{T}~\})
+  \Gamma ; \Sigma \vdash t : \texttt{SiloRef}[T] \quad
+  \Gamma ; \Sigma \vdash t' : (T \Rightarrow \texttt{SiloRef}[T']~\{~\texttt{type}~\mathcal{C} = \seq{T}~\})
 } {
-  \Gamma ; \Sigma ; \Delta \vdash \texttt{flatMap}(t, t') : \texttt{SiloRef}[T']
+  \Gamma ; \Sigma \vdash \texttt{flatMap}(t, t') : \texttt{SiloRef}[T']
 }
 
 % send
 \inferrule[\textsc{T-Send}] {
-  \Gamma ; \Sigma ; \Delta \vdash t : \texttt{SiloRef}[T]
+  \Gamma ; \Sigma \vdash t : \texttt{SiloRef}[T]
 } {
-  \Gamma ; \Sigma ; \Delta \vdash \texttt{send}(t) : \texttt{Future}[T]
+  \Gamma ; \Sigma \vdash \texttt{send}(t) : \texttt{Future}[T]
 }
 
 \inferrule[\textsc{T-SiloRef}] {
-  \Delta(id(r)) = T \quad
-  \Delta \vdash r
+  \Sigma(id(r)) = T \quad
+  \Sigma \vdash r
 } {
-  \Gamma ; \Sigma ; \Delta \vdash r : \texttt{SiloRef}[T]
+  \Gamma ; \Sigma \vdash r : \texttt{SiloRef}[T]
 }
 
 % await
 \inferrule[\textsc{T-Await}] {
-  \Gamma ; \Sigma ; \Delta \vdash t : \texttt{Future}[T]
+  \Gamma ; \Sigma \vdash t : \texttt{Future}[T]
 } {
-  \Gamma ; \Sigma ; \Delta \vdash \texttt{await}(t) : T
+  \Gamma ; \Sigma \vdash \texttt{await}(t) : T
 }
 
 \end{mathpar}
@@ -781,101 +792,92 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
 }
 
 \inferrule[\textsc{WF-Store2}] {
-  \Sigma \vdash \mu
+  \Sigma \vdash \sigma
 } {
-  [\iota \mapsto T]\Sigma \vdash [\iota \mapsto v]\mu
+  [\iota \mapsto T]\Sigma \vdash [\iota \mapsto v]\sigma
 }
 
 \inferrule[\textsc{WF-Ref1}] {
-  \Delta(\omega) = T  \quad
-  \Delta(id(r)) = T' \quad
-  \exists \Gamma, \Sigma.~\Gamma ; \Sigma ; \Delta \vdash p : T' \Rightarrow T~\{\ldots\} \quad
-  \Delta \vdash r
+  \Sigma(\iota) = T  \quad
+  \Sigma(id(r)) = T' \quad
+  \exists \Gamma, \Sigma.~\Gamma ; \Sigma \vdash p : T' \Rightarrow T~\{\ldots\} \quad
+  \Sigma \vdash r
 } {
-  \Delta \vdash \text{Mapped}(\omega, r, p)
+  \Sigma \vdash \text{Mapped}(\iota, r, p)
 }
 
 \inferrule[\textsc{WF-Ref2}] {
-  \Delta(\omega) = T  \quad
-  \Delta(id(r)) = T' \quad
-  \exists \Gamma, \Sigma.~\Gamma ; \Sigma ; \Delta \vdash p : T' \Rightarrow \texttt{SiloRef}[T]~\{\ldots\} \quad
-  \Delta \vdash r
+  \Sigma(\iota) = T  \quad
+  \Sigma(id(r)) = T' \quad
+  \exists \Gamma, \Sigma.~\Gamma ; \Sigma \vdash p : T' \Rightarrow \texttt{SiloRef}[T]~\{\ldots\} \quad
+  \Sigma \vdash r
 } {
-  \Delta \vdash \text{FMapped}(\omega, r, p)
+  \Sigma \vdash \text{FMapped}(\iota, r, p)
 }
 
 \inferrule[\textsc{WF-Ref4}] {
-  \omega \in dom(\Delta)
+  \iota \in dom(\Sigma)
 } {
-  \Delta \vdash {\text{Mat}(\omega)}
+  \Sigma \vdash {\text{Mat}(\iota)}
 }
 
 \inferrule[\textsc{WF-SiloStore1}] {} {
-  \Delta \vdash \emptyset
+  \Sigma \vdash \emptyset
 }
 
 \inferrule[\textsc{WF-SiloStore2}] {
-  \Delta(\omega) = T                  \quad
-  \emptyset ; \emptyset ; \Delta \vdash v : T  \quad
-  \Delta \vdash S
+  \Sigma(\iota) = T                   \quad
+  \emptyset ; \emptyset \vdash v : T  \quad
+  \Sigma \vdash \sigma
 } {
-  \Delta \vdash [\omega \mapsto ({\Val v}, P)]S
+  \Sigma \vdash [\iota \mapsto {\Val v}]\sigma
 }
 
 \inferrule[\textsc{WF-SiloStore3}] {
-  \Delta(id(r)) = \Delta(\omega)      \quad
-  \Delta \vdash r                     \quad
-  \Delta \vdash S
+  \Sigma(id(r)) = \Sigma(\iota)      \quad
+  \Sigma \vdash r                    \quad
+  \Sigma \vdash \sigma
 } {
-  \Delta \vdash [\omega \mapsto ({\Fwd r}, P)]S
+  \Sigma \vdash [\iota \mapsto {\Fwd r}]\sigma
 }
 
 \inferrule[\textsc{WF-Q1}] {} {
-  \Delta ; \Sigma \vdash \epsilon
-}
-
-\inferrule[\textsc{WF-Q2}] {
-  \Delta(\omega) = T                  \quad
-  \Sigma(\iota)  = \texttt{Future}[T] \quad
-  \Delta ; \Sigma \vdash Q
-} {
-  \Delta ; \Sigma \vdash {\ReqF \iota \omega} :: Q
+  \Sigma \vdash \epsilon
 }
 
 \inferrule[\textsc{WF-Q3}] {
-  \Delta(\omega) = T                  \quad
-  \emptyset ; \emptyset ; \Delta \vdash v : T  \quad
-  \Delta ; \Sigma \vdash Q
+  \Sigma(\iota) = T                   \quad
+  \emptyset ; \emptyset \vdash v : T  \quad
+  \Sigma \vdash Q
 } {
-  \Delta ; \Sigma \vdash {\Res \omega v P} :: Q
+  \Sigma \vdash {\Res \iota v} :: Q
 }
 
 \inferrule[\textsc{WF-Q4}] {
-  \Delta(id(r)) = \Delta(\omega) \quad
-  \Delta \vdash r \quad
-  \Delta ; \Sigma \vdash Q
+  \Sigma(id(r)) = \Sigma(\iota) \quad
+  \Sigma \vdash r \quad
+  \Sigma \vdash Q
 } {
-  \Delta ; \Sigma \vdash {\Req h r \omega} :: Q
+  \Sigma \vdash {\Req h r \iota} :: Q
 }
 
 \inferrule[\textsc{WF-HostConfig}] {
-  \Sigma \vdash \mu              \quad
-  \Delta \vdash S                \quad
-  \Delta ; \Sigma \vdash Q       \quad
-  \Gamma ; \Sigma ; \Delta \vdash t : T
+  \Sigma \vdash \sigma  \quad
+  \Sigma \vdash Q       \quad
+  \Gamma ; \Sigma \vdash t : T
 } {
-  \Delta ; \Sigma \vdash (t, \mu, Q, S)^h
+  \Sigma \vdash (t, \sigma, Q)^h
 }
 
 \inferrule[\textsc{WF-Host1}] {} { 
-  \Delta \vdash \emptyset
+  \Sigma \vdash \emptyset
 }
 
 \inferrule[\textsc{WF-Host2}] {
-  \exists \Sigma.~\Delta ; \Sigma \vdash (t, \mu, Q, S)^h  \quad
-  \Delta \vdash H
+  \exists \Sigma.~\Sigma \vdash (t, \sigma, Q)^h  \quad
+  \Sigma \vdash H
 } {
-  \Delta \vdash \{ (t, \mu, Q, S)^h \} \cup H
+  \Sigma \vdash \{ (t, \sigma, Q)^h \} \cup H
 }
 
 \end{mathpar}
@@ -1345,7 +1347,7 @@ Part 2: by induction on a derivation of $(t, \mu, Q, S)^h \longrightarrow (t', \
 
 \item Case R-Req2Local is analogous to case R-Req1Local.
 
-\item Case R-ReqMapLocal.
+\item Case R-ReqMap.
 \begin{enumerate}
 % 1.
 \item By the assumptions
@@ -1354,7 +1356,7 @@ Part 2: by induction on a derivation of $(t, \mu, Q, S)^h \longrightarrow (t', \
   \item $(t, \mu, Q, S)^h \longrightarrow (t', \mu', Q', S')^h$
   \end{enumerate}
 % 2.
-\item By R-ReqMapLocal
+\item By R-ReqMap
   \begin{enumerate}[label=(\alph*)]
   \item $t = E[\texttt{await}(\iota)]$
   \item $t' = t$
@@ -1409,7 +1411,7 @@ Part 2: by induction on a derivation of $(t, \mu, Q, S)^h \longrightarrow (t', \
 \item 2.b-c), 3.a), 3.d), 11., 13., and WF-HostConfig, $\Delta ; \Sigma \vdash (t', \mu', Q', S')^h$.
 \end{enumerate}
 
-\item Case R-ReqFMapLocal is analogous to case R-ReqMapLocal.
+\item Case R-ReqFMap is analogous to case R-ReqMap.
 
 \item Case R-ReqPersistLocal.
 \begin{enumerate}
@@ -1472,7 +1474,7 @@ Part 2: by induction on a derivation of $(t, \mu, Q, S)^h \longrightarrow (t', \
 \item By 2.b-c), 3.a,d), 8., 11., and WF-HostConfig, $\Delta ; \Sigma \vdash (t', \mu', Q', S')^h$.
 \end{enumerate}
 
-\item Case R-ReqParentLocal.
+\item Case R-ReqParent.
 \begin{enumerate}
 % 1.
 \item By the assumptions
@@ -1529,7 +1531,7 @@ Part 2: by induction on a derivation of $(t, \mu, Q, S)^h \longrightarrow (t', \
 Part 3: by induction on a derivation of $H \twoheadrightarrow H'$ with case analysis of the last applied rule.
 
 \begin{itemize}
-\item Case R-Determ.
+\item Case R-Local.
 \begin{enumerate}
 % 1.
 \item By the assumptions
@@ -1538,7 +1540,7 @@ Part 3: by induction on a derivation of $H \twoheadrightarrow H'$ with case anal
   \item $H \twoheadrightarrow H'$
   \end{enumerate}
 % 2.
-\item By R-Determ
+\item By R-Local
   \begin{enumerate}[label=(\alph*)]
   \item $H = \{ (t, \mu, Q, S)^h \} \cup H''$
   \item $H' = \{ (t', \mu', Q', S')^h \} \cup H''$
