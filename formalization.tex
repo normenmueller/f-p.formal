@@ -311,7 +311,7 @@ Consume silo $\omega$ with persist set $P$ in silo store $S$ \\
 } { 
   E[\texttt{map}(r, p)]~|~\mu
   \rightarrow^h
-  E[r']~|~\mu'
+  E[r']~|~\mu
 }
 
 \inferrule[\textsc{R-FMap}] { 
@@ -320,7 +320,7 @@ Consume silo $\omega$ with persist set $P$ in silo store $S$ \\
 } {
   E[\texttt{flatMap}(r, p)]~|~\mu
   \rightarrow^h
-  E[r']~|~\mu'
+  E[r']~|~\mu
 }
 
 \inferrule[\textsc{R-Persist}] { 
@@ -329,7 +329,7 @@ Consume silo $\omega$ with persist set $P$ in silo store $S$ \\
 } {
   E[\texttt{persist}(r)]~|~\mu
   \rightarrow^h
-  E[r']~|~\mu'
+  E[r']~|~\mu
 }
 
 \inferrule[\textsc{R-Unpersist}] { 
@@ -338,7 +338,7 @@ Consume silo $\omega$ with persist set $P$ in silo store $S$ \\
 } {
   E[\texttt{unpersist}(r)]~|~\mu
   \rightarrow^h
-  E[r']~|~\mu'
+  E[r']~|~\mu
 }
 
 \end{mathpar}
@@ -2103,15 +2103,121 @@ Part 3: by induction on a derivation of $H \twoheadrightarrow H'$ with case anal
 
 \end{proof}
 
-
 \newpage
+
+\begin{thm}
+\emph{(Lineage Replay Try 1)}\label{thm:replay-try1}
+
+If
+\begin{itemize}
+\item $\omega = (h, 0)$, $r = \text{Mat}(\omega)$, and $dom(\Delta) = \{ \omega \}$
+\item $S(\omega) = ({\Val v}, \emptyset)$ and $\Delta \vdash S$
+\item $\Gamma; \Sigma ; \Delta \vdash t : \texttt{SiloRef}[T]$
+\item $E[t] ~|~ \mu \rightarrow^{h'*} E[r'] ~|~ \mu$
+%\item Let $r'$ be a lineage created starting from $r$.
+\item $H := \{ (\texttt{await}(\iota'), [\iota' \mapsto \text{None}], \epsilon, \epsilon)^{h'}, (\texttt{await}(\iota), [\iota \mapsto \text{None}], {\Req {h'} {r'} {\omega'}} :: \epsilon, S)^h\}$
+\item $H \twoheadrightarrow^* \{ (\texttt{await}(\iota'), [\iota' \mapsto \text{None}], {\Res {\omega'} {v'} \emptyset} :: \epsilon, \epsilon)^{h'}, (\texttt{await}(\iota), [\iota \mapsto \text{None}], \epsilon, S')^h\}$
+\end{itemize}
+Then:
+\begin{itemize}
+\item $\omega'' = (h'', 0)$ and $dom(\Delta'') = \{ \omega'' \}$
+\item $r'' = remap(r', [\omega \mapsto \omega''])$
+\item $S''(\omega'') = ({\Val v}, \emptyset)$ and $\Delta'' \vdash S''$
+\item $H'' := \{ (\texttt{await}(\iota'), [\iota' \mapsto \text{None}], \epsilon, \epsilon)^{h'}, (\texttt{await}(\iota), [\iota \mapsto \text{None}], {\Req {h'} {r''} {\omega'}} :: \epsilon, S'')^{h''}\}$
+\item $H'' \twoheadrightarrow^* \{ (\texttt{await}(\iota'), [\iota' \mapsto \text{None}], {\Res {\omega'} {v'} \emptyset} :: \epsilon, \epsilon)^{h'}, (\texttt{await}(\iota), [\iota \mapsto \text{None}], \epsilon, S''')^{h''}\}$
+
+%\item sending ${\Req {h'} {r''} {\omega'}}$ to $h''$ yields ${\Res {\omega'} {v'} \emptyset}$ after a few steps
+\end{itemize}
+\end{thm}
+\begin{proof}
+%By induction on the structure of $r'$ with case analysis of the last lineage constructor used.
+By induction on a derivation of $E[t] ~|~ \mu \rightarrow^{h'*} E[r'] ~|~ \mu$ with case analysis of the last applied reduction rule.
+\begin{itemize}
+\item Case R-Map.
+\begin{enumerate}
+% 1.
+\item By the assumption
+  \begin{enumerate}[label=(\alph*)]
+  \item $r' = \text{Mapped}((h', i), r_p, p)$
+  \item $i~\text{fresh}$
+  \end{enumerate}
+% 2.
+\item By the IH
+  \begin{enumerate}[label=(\alph*)]
+  \item $\{ (\texttt{await}(\iota'), [\iota' \mapsto \text{None}], \epsilon, \epsilon)^{h'}, (\texttt{await}(\iota), [\iota \mapsto \text{None}], {\Req {h'} {r_p} {\omega_p}} :: \epsilon, S)^h\} \twoheadrightarrow \{ (\texttt{await}(\iota'), [\iota' \mapsto \text{None}], {\Res {\omega_p} {v_p} \emptyset} :: \epsilon, \epsilon)^{h'}, (\texttt{await}(\iota), [\iota \mapsto \text{None}], \epsilon, S_p)^{h''}\}$
+  \item $\{ (\texttt{await}(\iota'), [\iota' \mapsto \text{None}], \epsilon, \epsilon)^{h'}, (\texttt{await}(\iota), [\iota \mapsto \text{None}], {\Req {h'} {r''_p} {\omega_p}} :: \epsilon, S'')^{h''}\} \twoheadrightarrow \{ (\texttt{await}(\iota'), [\iota' \mapsto \text{None}], {\Res {\omega_p} {v_p} \emptyset} :: \epsilon, \epsilon)^{h'}, (\texttt{await}(\iota), [\iota \mapsto \text{None}], \epsilon, S'''_p)^{h''}\}$ for remapped $r''_p$
+  \end{enumerate}
+
+\end{enumerate}
+
+\end{itemize}
+\end{proof}
+
+\begin{thm}
+\emph{(Lineage Replay Scratch)}\label{thm:replay2}
+
+$m(h) = h'$
+$m \in Host \rightarrow Host$
+
+$max(h) = i_h$
+
+%$remap(r, m) := begin{cases}
+%  Mat((m(h), 0))                   & r = Mat((h, 0)) \\
+%  Mapped(\omega, remap(r', m), p)  & r = Mapped(\omega, r', p) \\
+%\end{cases}
+%$
+
+$r' = remap(r, m)$
+
+Simple case.
+Start:
+\begin{itemize}
+\item $r = \text{Mat}(\omega)$
+\item $\omega = (h, 0)$
+\item $\Delta \vdash r$
+\item $dom(\Delta) = \{ \omega \}$
+\item $S(\omega) = ({\Val v}, \emptyset)$
+\item $\Delta \vdash S$
+\item Consider lineage $\hat{r}$ created starting with just $r$.
+\item $\Gamma; \Sigma ; \Delta \vdash t : \texttt{SiloRef}[T']$
+\item $E[t] ~|~ \mu \rightarrow^{\hat{h}*} E[\hat{r}] ~|~ \mu$
+\item send $Req(\hat{h}, \hat{r}, \hat{\omega})$ to $h$
+\item then $Res$ will contain value $v'$.
+
+\item $(E[await(send(\hat{r}))], \mu, Q, S)^{\hat{h}} \cup H \twoheadrightarrow^* (E[v'], \mu', Q', S')^{\hat{h}}$
+
+\item $v' = materialize(\hat{r})$
+\item Client $\hat{h}$ requests materialization of $\hat{r}$
+\item Materialization yields value $v'$
+\end{itemize}
+
+Next:
+\begin{itemize}
+\item $r' = \text{Mat}(\omega')$
+\item $\omega' = (h', i')$
+\item $\Delta \vdash r'$
+\item $S'(\omega') = ({\Val v}, \emptyset)$
+\item Client baut lineage $\hat{r'}$
+\item Client $\hat{h}$ request materialization of $\hat{r'}$
+\item Materialization yields value $v'$
+\end{itemize}
+
+
+
+\begin{itemize}
+\item $\forall r_i \in \seq{r}.~r_i = \text{Mat}(\omega_i)$
+\item $\Delta \vdash \seq{r}$
+\end{itemize}
+
+
+\end{thm}
 
 \begin{thm}
 \emph{(Lineage Replay)}\label{thm:replay}
 
 If
 \begin{itemize}
-\item $\emptyset ; \emptyset ; \text{pure} \vdash t : \texttt{SiloRef}[T]$
+\item $\emptyset ; \emptyset ; \Delta \vdash t : \texttt{SiloRef}[T]$
 \item $H_1 := \{ (E_1[send(t)], \mu_1, Q_1, S_1)^h \} \cup H_2$
 \item $\vdash H_1$
 \item $H_1 \twoheadrightarrow^* \{ (E_1[\iota], \mu_2, Q_2, S_2)^h \} \cup H_3$
