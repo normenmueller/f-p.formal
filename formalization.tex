@@ -36,7 +36,6 @@
 \newcommand{\Res}[3]{\text{Res}_s(#1, #2, #3)}
 \newcommand{\ReqF}[2]{\text{Req}_{\iota}(#1, #2)}
 \newcommand{\ReqE}[3]{\text{Req}_f(#1, #2, #3)}
-\newcommand{\Per}[3]{\text{Persist}(#1, #2, #3)}
 
 %% Calculus abbreviations
 \newcommand{\None}{\text{None}}
@@ -82,7 +81,6 @@ t ::=                                                                       & \m
 \gap ~|~  \texttt{populate}(t, t)                                           & \mbox{populate silo} \\
 \gap ~|~  \texttt{map}(t, t)                                                & \mbox{map} \\                          
 \gap ~|~  \texttt{flatMap}(t, t)                                            & \mbox{flatMap} \\                          
-\gap ~|~  \texttt{persist}(t)                                               & \mbox{persist} \\
 \gap ~|~  \texttt{send}(t)                                                  & \mbox{send} \\           % send  :: Ref a -> Fut a
 \gap ~|~  \texttt{await}(t)                                                 & \mbox{await future} \\   % await :: Fut a -> a                        
 \gap ~|~  \iota                                                             & \mbox{location} \\                          
@@ -131,7 +129,6 @@ r ::=                                                  & \mbox{{\it{silo referen
 \gap \:\:\:\: \text{Mat}(\omega)                       & \mbox{materialized} \\    
 \gap ~|~  \text{Mapped}(\omega, r, p)                  & \mbox{lineage with \texttt{map}} \\    
 \gap ~|~  \text{FMapped}(\omega, r, p)                 & \mbox{lineage with \texttt{flatMap}} \\   
-\gap ~|~  \text{Persist}(\omega, r)                    & \mbox{lineage with \texttt{persist}} \\
                                                        & \\   
 \omega  ::= (h,i) \quad \text{where}~i \in \mathbb{N}  & \mbox{decentralized identifier} \\
                                                        & \\
@@ -208,7 +205,6 @@ In the following we introduce a function to backtrack the host of a referenced s
     h        & \text{if } r = Mat((h, i)) \\
     host(r') & \text{if } r = Mapped(\_, r', \_) \\
     host(r') & \text{if } r = FMapped(\_, r', \_) \\
-    host(r') & \text{if } r = Persist(\_, r', \_) \\
     \end{cases}$
 \end{defn}
 
@@ -233,7 +229,6 @@ E ::=                                                                           
 \gap ~|~  \texttt{map}(v, E)                                                                              & \mbox{map (fun)} \\
 \gap ~|~  \texttt{flatMap}(E, t)                                                                          & \mbox{flatMap (ref)} \\
 \gap ~|~  \texttt{flatMap}(v, E)                                                                          & \mbox{flatMap (fun)} \\
-\gap ~|~  \texttt{persist}(E)                                                                             & \mbox{persist} \\
 \gap ~|~  \texttt{send}(E)                                                                                & \mbox{send} \\
 \gap ~|~  \texttt{await}(E)                                                                               & \mbox{await} \\
 \ea$ 
@@ -244,7 +239,6 @@ E ::=                                                                           
     \omega  & \text{if } r = Mat(\omega) \\
     \omega  & \text{if } r = Mapped(\omega, r', \_) \\
     \omega  & \text{if } r = FMapped(\omega, r', \_) \\
-    \omega  & \text{if } r = Persist(\omega, r', \_) \\
     \end{cases}$
 \end{defn}
 
@@ -253,16 +247,7 @@ E ::=                                                                           
     \None     & \text{if } r = Mat(\_) \\
     \Some{r'} & \text{if } r = Mapped(\_, r', \_) \\
     \Some{r'} & \text{if } r = FMapped(\_, r', \_) \\
-    \Some{r'} & \text{if } r = Persist(\_, r', \_) \\
     \end{cases}$
-\end{defn}
-
-\begin{defn}[Consume silo]
-Consume silo $\omega$ with persist set $P$ in silo store $S$ \\
-  $consume(\omega, P, S) := \begin{cases}
-  S - \omega & \text{if } P = \emptyset \\
-  S          & \text{otherwise} \\
-  \end{cases}$
 \end{defn}
 
 \newpage
@@ -321,24 +306,6 @@ Consume silo $\omega$ with persist set $P$ in silo store $S$ \\
   E[r']~|~\mu
 }
 
-\inferrule[\textsc{R-Persist}] { 
-  r' = \text{Persist}((h, i), r, \cdot \cup \cdot) \quad
-  i~\text{fresh}
-} {
-  E[\texttt{persist}(r)]~|~\mu
-  \rightarrow^h
-  E[r']~|~\mu
-}
-
-\inferrule[\textsc{R-Unpersist}] { 
-  r' = \text{Persist}((h, i), r, \cdot \setminus \cdot) \quad
-  i~\text{fresh}
-} {
-  E[\texttt{unpersist}(r)]~|~\mu
-  \rightarrow^h
-  E[r']~|~\mu
-}
-
 \end{mathpar}
 \caption{Sequential reduction.}
 \end{figure}
@@ -353,7 +320,7 @@ Consume silo $\omega$ with persist set $P$ in silo store $S$ \\
 
 % Define silo store
 
-We write $S' = S + (\iota \mapsto (B, P))$ to express the fact that $S'$ maps $\iota$ to a pair $(B, P)$ and otherwise agrees with $S$. $B$ is a binding of the form $\Val{v}$ or $\Fwd{r}$; the former contains a materialized value $v$, the latter forwards to silo reference $r$, such that $\iota$ is effectively bound to the same value as the identifier of $r$. $P \subset Hosts$ is a set of hosts which have persisted the silo identified by $\iota$. We write $S(\iota) = \text{Some}(B, P)$ to express the fact that $S$ maps $\iota$ to $(B, P)$. We write $S(\iota) = \text{None}$ if $S$ does not have a mapping for $\iota$.
+We write $S' = S + (\iota \mapsto B)$ to express the fact that $S'$ maps $\iota$ to a value $B$ and otherwise agrees with $S$. $B$ is a value of the form $\Val{v}$ or $\Fwd{r}$; the former contains a materialized value $v$, the latter forwards to silo reference $r$, such that $\iota$ is effectively bound to the same value as the identifier of $r$. We write $S(\iota) = \text{Some}(B)$ to express the fact that $S$ maps $\iota$ to $B$. We write $S(\iota) = \text{None}$ if $S$ does not have a mapping for $\iota$.
 
 Our formalization simplifies the computation model with respect to materialized silos. In case of a silo reference of the form $Mat((h, i))$ we assume that there is a mapping in the corresponding silo store $S$, such that $S((h, i)) = \text{Some}(\Val{v}, \{ h \})$ for some value $v$.
 
@@ -489,20 +456,6 @@ Our formalization simplifies the computation model with respect to materialized 
   (E[\texttt{await}(\iota)], \mu, Q, S)^h
   \longrightarrow
   (E[\texttt{await}(\iota)], \mu, Q' \cdot {\Req {h'} {r''} \omega}, S'')^h
-}
-
-\inferrule[\textsc{R-ReqPersistLocal}] {
-  Q          = {\Req {h'} r \omega} :: Q'                      \quad %
-  r          = {\Per {\omega'} {r'} \star}                  \quad %
-  \omega'    = (h'', i)                                      \quad %
-  S(id(r'))  = (\Val{v}, P)                               \\
-  P'         = P \star \{h''\}                               \quad %
-  S'         = [\omega' \mapsto (\Val{v}, P')]S            \quad %
-  S''        = {\consume {id(r')} P {S'}}
-} {
-  (E[\texttt{await}(\iota)], \mu, Q,  S)^h
-  \longrightarrow
-  (E[\texttt{await}(\iota)], \mu, Q' \cdot {\Res \omega v {P'}}, S'')^h
 }
 
 \inferrule[\textsc{R-ReqParentLocal}] {
@@ -787,13 +740,6 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
   \Gamma ; \Sigma ; \Delta \vdash \texttt{flatMap}(t, t') : \texttt{SiloRef}[T']
 }
 
-% persist
-\inferrule[\textsc{T-Persist}] {
-  \Gamma ; \Sigma ; \Delta \vdash t : \texttt{SiloRef}[T]
-} {
-  \Gamma ; \Sigma ; \Delta \vdash \texttt{persist}(t) : \texttt{SiloRef}[T]
-}
-
 % send
 \inferrule[\textsc{T-Send}] {
   \Gamma ; \Sigma ; \Delta \vdash t : \texttt{SiloRef}[T]
@@ -856,14 +802,6 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
   \Delta \vdash r
 } {
   \Delta \vdash \text{FMapped}(\omega, r, p)
-}
-
-\inferrule[\textsc{WF-Ref3}] {
-  \Delta(\omega) = T  \quad
-  \Delta(id(r)) = T   \quad
-  \Delta \vdash r
-} {
-  \Delta \vdash {\Per \omega r {\star}}
 }
 
 \inferrule[\textsc{WF-Ref4}] {
