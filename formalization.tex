@@ -509,6 +509,38 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
 
 \begin{figure}[ht!]
 \begin{mathpar}
+% R-PopRes
+\inferrule[\textsc{Proc-PopReq}] {
+  \iota    = (h, i)                \quad i~\text{fresh} \quad
+  r        = \text{Mat}(\iota)     \quad
+  m'       = {\PopRes {\iota'} r}  \quad
+  \sigma'' = [\iota \mapsto {\Val \unit}]\sigma
+} {
+  process(h, {\PopReq {h'} {\iota'}}, \sigma, h') = (m', \sigma'')
+}
+
+% R-Req1
+\inferrule[\textsc{Proc-Req}] {
+  \sigma(id(r)) = \Val{v}         \quad
+  m'            = {\Res \iota v}  \quad
+} {
+  process(h, {\Req {h'} r \iota}, \sigma, h') = (m', \sigma)
+}
+
+% R-Req3
+\inferrule[\textsc{Proc-ReqFwd}] {
+  \sigma(id(r)) = \Fwd{r'}                 \quad
+  h'            = host(r')                 \quad
+  m'            = {\Req {h''} {r'} \iota}  \quad
+} {
+  process(h, {\Req {h''} r \iota}, \sigma, h') = (m', \sigma)
+}
+\end{mathpar}
+\caption{Message processing.}
+\end{figure}
+
+\begin{figure}[ht!]
+\begin{mathpar}
 \inferrule[\textsc{R-Local}] {
   (t, \sigma, Q)^h \rightarrow (t', \sigma', Q')^h
 } { 
@@ -517,26 +549,7 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
   \{ (t', \sigma', Q')^h \} \cup H
 }
 
-% TODO send spore instead of a value `v`
-%\inferrule[\textsc{R-Populate}] { 
-%  \mu(\iota) = h'                                         \quad
-%  S''        = [\omega \mapsto {\Val v}]S'   \quad
-%  \omega     = (h', i)                                    \\
-%  i~\text{fresh} \quad
-%
-%  \iota' = (h, i) \quad i~\text{fresh} \quad % local
-%  
-%  % spaeter bekommen wir ein PopRes(\iota', r'')   kann uns r'' = Mat(\iota'') schicken
-%  % wir selber im silo store: \sigma' = [\iota' \mapsto Fwd(r'')]\sigma
-%  % p ::= \texttt{spore}~\{~\seq{x : T = v}~; (x: T) \Rightarrow t~\}           & \\
-%  %p = \texttt{spore}~\{~; (x: \{ \}) \Rightarrow v~\}
-%} {
-%  \{ (E[\texttt{populate}(h', p)], \sigma, Q)^h, (t', \sigma', Q')^{h'} \} \cup H
-%  \twoheadrightarrow
-%  \{ (E[\iota'], \sigma, Q)^h, (t', \sigma', Q' \cdot \text{PopReq}(h, p, \iota'))^{h'} \} \cup H
-%}
-
-\inferrule[\textsc{R-PopReq}] {
+\inferrule[\textsc{R-Populate}] {
   \iota = (h, i) \quad i~\text{fresh} \quad
   r     = {\Mat \iota}                \quad
   m     = {\PopReq h \iota }
@@ -544,63 +557,6 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
   \{ (E[\texttt{populate}(h')], \sigma, Q)^h, (t', \sigma', Q')^{h'} \} \cup H
   \twoheadrightarrow
   \{ (E[r], \sigma, Q)^h, (t', \sigma', Q' \cdot m)^{h'} \} \cup H
-}
-
-\inferrule[\textsc{R-PopRes}] {
-  Q        = {\PopReq {h'} {\iota'}} :: Q''     \quad
-  \iota    = (h, i)                             \quad i~\text{fresh}  \\
-  r        = \text{Mat}(\iota)                  \quad
-  \sigma'' = [\iota \mapsto {\Val \unit}]\sigma \quad
-  m        = {\PopRes {\iota'} r}
-} {
-  \{ (E[\texttt{await}(\iota'')], \sigma, Q)^h, (t', \sigma', Q')^{h'} \} \cup H
-  \twoheadrightarrow
-  \{ (E[\texttt{await}(\iota'')], \sigma'', Q)^h, (t', \sigma', Q' \cdot m)^{h'} \} \cup H
-}
-
-\inferrule[\textsc{R-Req1}] {
-  Q             = {\Req {h'} r \iota} :: Q''  \quad
-  \sigma(id(r)) = \Val{v}                     \quad
-  m             = {\Res \iota v}
-} {
-  \{ (E[\texttt{await}(\iota')], \sigma, Q)^h, (t', \sigma', Q')^{h'} \} \cup H
-  \twoheadrightarrow
-  \{ (E[\texttt{await}(\iota')], \sigma, Q'')^h, (t', \sigma', Q' \cdot m)^{h'} \} \cup H
-}
-
-% Rules that send Req:
-% R-Send: true (append)
-% (R-Req2Map: true (prepend))
-% R-Req2Fwd: true (prepend)
-% 
-% if a rule sends Req(h, r) to h', is it true that host(r) == h'?
-% XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
-
-% 1. Angenommen Host h hat einen \Fwd{r'}, dann wissen wir nicht, 
-%    auf welchem Host r' liegt. Das war der eigentliche Grund, Fwd
-%    einzufuehren, weil dann ein flatMap keine Daten transferieren muss.
-%    D.h. wir wollen zulassen, dass eine Referenz in einem Fwd auf
-%    einem beliebigen Host liegen kann.
-% Jetzt kann es sein, dass ich auf Host h ein r = r0.flatMap(p) mache.
-% diese Referenz r kann ich an einen anderen Host h' geben.
-% Jetzt macht Host h' ein r.send(). D.h., h' schickt einen Req(h', r) an h.
-% Jetzt sagt Host h: S(id(r)) = Fwd(r'), und r' kann auch auf Host h' sein
-% (da Host von r' beliebig wie oben erwaehnt).
-% Und in diesem Fall gilt, dass host(r') = h' ist, und daher Host h
-% einen Req(h', r' r) an h'' = h' sendet. Das hat zur Folge, das Host h'
-% jetzt einen Req(h', r', r) bearbeiten muss. Daher muessen auch die lokalen
-% Regeln mit zwei unterschiedlichen Referenzen umgehen koennen, weil
-% r definitiv ungleich r' ist.
-\inferrule[\textsc{R-Req3}] {
-  Q              = {\Req {h''} r \iota} :: Q''       \quad %
-  \sigma(id(r))  = \Fwd{r'}                          \\ %
-  h'             = host(r')                          \quad %
-  m              = {\Req {h''} {r'} \iota}
-} {
-  \{ (E[\texttt{await}(\iota')], \sigma, Q)^h, (t', \sigma', Q')^{h'} \} \cup H
-  \twoheadrightarrow
-  \{ (E[\texttt{await}(\iota')], \sigma, Q'')^h, (t', \sigma', Q' \cdot m)^{h'} \} \cup H
 }
 
 \inferrule[\textsc{R-Send}] {
@@ -613,8 +569,16 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
   \{ (E[id(r)], \sigma, Q)^h, (t', \sigma', Q' \cdot m)^{h'} \} \cup H
 }
 
+\inferrule[\textsc{R-ProcQueue}] {
+  (m', \sigma'') = process(h, m, \sigma, h')
+} {
+  \{ (E[\texttt{await}(\iota)], \sigma, m :: Q)^h, (t', \sigma', Q')^{h'} \} \cup H
+  \twoheadrightarrow
+  \{ (E[\texttt{await}(\iota)], \sigma'', Q)^h, (t', \sigma', Q' \cdot m')^{h'} \} \cup H
+}
+
 \end{mathpar}
-\caption{Non-deterministic reduction.}
+\caption{Non-local reduction.}
 \end{figure}
 
 \begin{description}[font=\normalfont\itshape\space]
