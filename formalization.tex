@@ -386,47 +386,12 @@ Our formalization simplifies the computation model with respect to materialized 
 
 \begin{mathpar}
 
-\inferrule[\textsc{R-Res}] {
-  Q       = {\Res \iota v} :: Q'          \\
-  \sigma' = [\iota \mapsto \Val{v}]\sigma
+\inferrule[\textsc{R-ProcQueueLocal}] {
+  (Q', \sigma') = process(h, m, \sigma, h)
 } {
-  (E[\texttt{await}(\iota')], \sigma, Q)^h
+  (E[\texttt{await}(\iota)], \sigma, m :: Q)^h
   \longrightarrow
-  (E[\texttt{await}(\iota')], \sigma', Q')^h
-}
-
-\inferrule[\textsc{R-ReqLocal}] {
-  Q             = {\Req h r \iota} :: Q'    \quad %
-  \sigma(id(r)) = \Fwd{r'}                  \quad %
-  host(r')      = h
-} {
-  (E[\texttt{await}(\iota')], \sigma, Q)^h
-  \longrightarrow
-  (E[\texttt{await}(\iota')], \sigma, Q' \cdot {\Req h {r'} \iota})^h
-}
-
-\inferrule[\textsc{R-ReqMap}] {
-  Q               = {\Req {h'} r \iota} :: Q'           \quad %
-  r               = \text{Mapped}(\iota', r', p)        \quad %
-  \sigma(id(r'))  = \Val{v}                             \\
-  v'              = p(v)                                \quad %
-  \sigma'         = [\iota' \mapsto \Val{v'}]\sigma
-} {
-  (E[\texttt{await}(\iota'')], \sigma, Q)^h
-  \longrightarrow
-  (E[\texttt{await}(\iota'')], \sigma', Q' \cdot {\Req {h'} r \iota})^h
-}
-
-\inferrule[\textsc{R-ReqFMap}] {
-  Q               = {\Req {h'} r \iota} :: Q'      \quad %
-  r               = \text{FMapped}(\iota', r', p)  \quad %
-  \sigma(id(r'))  = \Val{v}                   \\
-  r''             = p(v)                                        \quad %
-  \sigma'         = [\iota' \mapsto \Fwd{r''}]\sigma
-} {
-  (E[\texttt{await}(\iota'')], \sigma, Q)^h
-  \longrightarrow
-  (E[\texttt{await}(\iota'')], \sigma', Q' \cdot {\Req {h'} {r''} \iota})^h
+  (E[\texttt{await}(\iota)], \sigma', Q ::: Q')^h
 }
 
 \inferrule[\textsc{R-ReqParent}] {
@@ -509,6 +474,42 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
 
 \begin{figure}[ht!]
 \begin{mathpar}
+
+% R-Res
+\inferrule[\textsc{Proc-Res}] {
+  \sigma' = [\iota \mapsto \Val{v}]\sigma
+} {
+  process(h, {\Res \iota v}, \sigma, h) = (\epsilon, \sigma')
+}
+
+% R-ReqLocal
+\inferrule[\textsc{Proc-ReqLocal}] {
+  \sigma(id(r)) = \Fwd{r'}  \quad
+  host(r')      = h
+} {
+  process(h, {\Req h r \iota}, \sigma, h) = ({\Req h {r'} \iota} ::: \epsilon, \sigma)
+}
+
+% R-ReqMap
+\inferrule[\textsc{Proc-ReqMap}] {
+  r               = \text{Mapped}(\iota', r', p)  \quad
+  \sigma(id(r'))  = \Val{v}                       \quad
+  v'              = p(v)                          \quad
+  \sigma'         = [\iota' \mapsto \Val{v'}]\sigma
+} {
+  process(h, {\Req {h'} r \iota}, \sigma, h) = ({\Req {h'} r \iota} ::: \epsilon, \sigma')
+}
+
+% R-ReqFMap XXX
+\inferrule[\textsc{Proc-ReqFMap}] {
+  r               = \text{FMapped}(\iota', r', p) \quad
+  \sigma(id(r'))  = \Val{v} \quad
+  r''             = p(v)    \quad
+  \sigma'         = [\iota' \mapsto \Fwd{r''}]\sigma
+} {
+  process(h, {\Req {h'} r \iota}, \sigma, h) = ({\Req {h'} {r''} \iota} ::: \epsilon, \sigma')
+}
+
 % R-PopRes
 \inferrule[\textsc{Proc-PopReq}] {
   \iota    = (h, i)                \quad i~\text{fresh} \quad
