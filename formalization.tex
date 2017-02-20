@@ -448,12 +448,13 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
   process(h, {\Req {h'} r \iota}, \sigma, h') = (m' \cdot \epsilon, \sigma)
 }
 
-% R-ReqLocal
-\inferrule[\textsc{Proc-ReqLocal}] {
-  \sigma(id(r)) = \Fwd{r'}  \quad
-  host(r')      = h
+% R-ReqMat
+\inferrule[\textsc{Proc-ReqMat}] {
+  r = {\Mat {\iota'}}         \quad
+  host(r) = h                 \quad
+  \iota' \notin dom(\sigma)
 } {
-  process(h, {\Req h r \iota}, \sigma, h) = ({\Req h {r'} \iota} ::: \epsilon, \sigma)
+  process(h, {\Req h r \iota}, \sigma, h) = ({\Req h r \iota} \cdot \epsilon, \sigma)
 }
 
 % R-ReqMap
@@ -476,15 +477,7 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
   process(h, {\Req {h'} r \iota}, \sigma, h) = ({\Req {h'} {r''} \iota} ::: \epsilon, \sigma')
 }
 
-% R-ReqParent
-\inferrule[\textsc{Proc-ReqParent}] {
-  r' = parent(r)                  \quad %
-  id(r') \notin dom(\sigma)
-} {
-  process(h, {\Req {h'} r \iota}, \sigma, h) = ({\Req h {r'} {id(r')}} \cdot {\Req {h'} r \iota} \cdot \epsilon, \sigma)
-}
-
-% R-Req3
+% R-Req3 + (R-ReqLocal w/ h' == h und h'' == h)
 \inferrule[\textsc{Proc-ReqFwd}] {
   \sigma(id(r)) = \Fwd{r'}                 \quad
   h'            = host(r')                 \quad
@@ -493,13 +486,12 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
   process(h, {\Req {h''} r \iota}, \sigma, h') = (m' \cdot \epsilon, \sigma)
 }
 
-% R-ReqMat
-\inferrule[\textsc{Proc-ReqMat}] {
-  r = {\Mat {\iota'}}         \quad
-  host(r) = h                 \quad
-  \iota' \notin dom(\sigma)
+% R-ReqParent
+\inferrule[\textsc{Proc-ReqParent}] {
+  r' = parent(r)                  \quad %
+  id(r') \notin dom(\sigma)
 } {
-  process(h, {\Req h r \iota}, \sigma, h) = ({\Req h r \iota} \cdot \epsilon, \sigma)
+  process(h, {\Req {h'} r \iota}, \sigma, h) = ({\Req h {r'} {id(r')}} \cdot {\Req {h'} r \iota} \cdot \epsilon, \sigma)
 }
 
 % R-Res
@@ -518,12 +510,12 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
 
 % R-PopRes
 \inferrule[\textsc{Proc-PopReq}] {
-  \iota    = (h, i)                \quad i~\text{fresh} \quad
-  r        = \text{Mat}(\iota)     \quad
-  m'       = {\PopRes {\iota'} r}  \quad
-  \sigma'' = [\iota \mapsto {\Val \unit}]\sigma
+  \iota   = (h, i)                \quad i~\text{fresh} \quad
+  r       = \text{Mat}(\iota)     \quad
+  m'      = {\PopRes {\iota'} r}  \quad
+  \sigma' = [\iota \mapsto {\Val \unit}]\sigma
 } {
-  process(h, {\PopReq {h'} {\iota'}}, \sigma, h') = (m' \cdot \epsilon, \sigma'')
+  process(h, {\PopReq {h'} {\iota'}}, \sigma, h') = (m' \cdot \epsilon, \sigma')
 }
 
 \end{mathpar}
