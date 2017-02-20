@@ -319,6 +319,19 @@ E ::=                                                                           
 \caption{Sequential reduction.}
 \end{figure}
 
+TEXT: Man kann, wenn man will zur Optimierung eine Zusatzregel einfuehren fuer send:
+
+\begin{mathpar}
+\inferrule[\textsc{R-Send}] {
+  host(r) = h                      \quad
+  \sigma(id(r)) = \Val{v}
+} {
+  E[\texttt{send}(r)]~|~\sigma
+  \rightarrow^h
+  E[id(r)]~|~\sigma
+}
+\end{mathpar}
+
 \newpage
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -348,22 +361,21 @@ Our formalization simplifies the computation model with respect to materialized 
   (E[t'], \sigma', Q)^h
 }
 
-\inferrule[\textsc{R-Send1Local}] {
-  host(r) = h                      \quad
-  \sigma(id(r)) = \Val{v}
-} {
-  (E[\texttt{send}(r)], \sigma, Q)^h
-  \longrightarrow
-  (E[id(r)], \sigma, Q)^h
-}
-
-\inferrule[\textsc{R-Send2Local}] {
+\inferrule[\textsc{R-SendLocal}] {
   host(r)    = h                         \quad
   id(r) \notin dom(\sigma)
 } {
   (E[\texttt{send}(r)], \sigma, Q)^h
   \longrightarrow
   (E[id(r)], \sigma, Q \cdot {\Req h r {id(r)}})^h
+}
+
+\inferrule[\textsc{R-ProcQueueLocal}] {
+  (Q', \sigma') = process(h, m, \sigma, h)
+} {
+  (E[\texttt{await}(\iota)], \sigma, m :: Q)^h
+  \longrightarrow
+  (E[\texttt{await}(\iota)], \sigma', Q ::: Q')^h
 }
 
 \end{mathpar}
@@ -380,53 +392,6 @@ Our formalization simplifies the computation model with respect to materialized 
 % updates silo store.
 % Goal: theorem which states that persist sets are "correct".
 % We don't lose hosts from persist sets.
-
-\begin{figure}[ht!]
-\centering
-
-\begin{mathpar}
-
-\inferrule[\textsc{R-ProcQueueLocal}] {
-  (Q', \sigma') = process(h, m, \sigma, h)
-} {
-  (E[\texttt{await}(\iota)], \sigma, m :: Q)^h
-  \longrightarrow
-  (E[\texttt{await}(\iota)], \sigma', Q ::: Q')^h
-}
-
-\inferrule[\textsc{R-ReqParent}] {
-  Q  = {\Req {h'} r \iota} :: Q'  \quad %
-  r' = parent(r)                  \quad %
-  id(r') \notin dom(\sigma)
-} {
-  (E[\texttt{await}(\iota')], \sigma, Q)^h
-  \longrightarrow
-  (E[\texttt{await}(\iota')], \sigma, Q' \cdot {\Req h {r'} {id(r')}} \cdot {\Req {h'} r \iota})^h
-}
-
-\inferrule[\textsc{R-ReqMat}] {
-  Q = {\Req h r \iota} :: Q'  \quad
-  r = {\Mat {\iota'}}         \quad
-  host(r) = h                 \quad
-  \iota' \notin dom(\sigma)
-} {
-  (E[\texttt{await}(\iota'')], \sigma, Q)^h
-  \longrightarrow
-  (E[\texttt{await}(\iota'')], \sigma, Q' \cdot {\Req h r \iota})^h
-}
-
-\inferrule[\textsc{R-PopResLocal}] {
-  Q = {\PopRes {\iota} r} :: Q'             \quad
-  \sigma' = [\iota \mapsto {\Fwd r}]\sigma
-} {
-  (E[\texttt{await}(\iota')], \sigma, Q)^h
-  \longrightarrow
-  (E[\texttt{await}(\iota')], \sigma', Q')^h
-}
-
-\end{mathpar}
-\caption{Queue reduction.}
-\end{figure}
 
 \begin{description}[font=\normalfont\itshape\space]
 \item[\textsc{R-Map}] ...
@@ -475,11 +440,12 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
 \begin{figure}[ht!]
 \begin{mathpar}
 
-% R-Res
-\inferrule[\textsc{Proc-Res}] {
-  \sigma' = [\iota \mapsto \Val{v}]\sigma
+% R-Req1
+\inferrule[\textsc{Proc-Req}] {
+  \sigma(id(r)) = \Val{v}         \quad
+  m'            = {\Res \iota v}  \quad
 } {
-  process(h, {\Res \iota v}, \sigma, h) = (\epsilon, \sigma')
+  process(h, {\Req {h'} r \iota}, \sigma, h') = (m' \cdot \epsilon, \sigma)
 }
 
 % R-ReqLocal
@@ -492,15 +458,15 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
 
 % R-ReqMap
 \inferrule[\textsc{Proc-ReqMap}] {
-  r               = \text{Mapped}(\iota', r', p)  \quad
-  \sigma(id(r'))  = \Val{v}                       \quad
-  v'              = p(v)                          \quad
+  r               = \text{Mapped}(\iota', r', p)    \quad
+  \sigma(id(r'))  = \Val{v}                         \quad
+  v'              = p(v)                            \quad
   \sigma'         = [\iota' \mapsto \Val{v'}]\sigma
 } {
   process(h, {\Req {h'} r \iota}, \sigma, h) = ({\Req {h'} r \iota} ::: \epsilon, \sigma')
 }
 
-% R-ReqFMap XXX
+% R-ReqFMap
 \inferrule[\textsc{Proc-ReqFMap}] {
   r               = \text{FMapped}(\iota', r', p) \quad
   \sigma(id(r'))  = \Val{v} \quad
@@ -510,22 +476,12 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
   process(h, {\Req {h'} r \iota}, \sigma, h) = ({\Req {h'} {r''} \iota} ::: \epsilon, \sigma')
 }
 
-% R-PopRes
-\inferrule[\textsc{Proc-PopReq}] {
-  \iota    = (h, i)                \quad i~\text{fresh} \quad
-  r        = \text{Mat}(\iota)     \quad
-  m'       = {\PopRes {\iota'} r}  \quad
-  \sigma'' = [\iota \mapsto {\Val \unit}]\sigma
+% R-ReqParent
+\inferrule[\textsc{Proc-ReqParent}] {
+  r' = parent(r)                  \quad %
+  id(r') \notin dom(\sigma)
 } {
-  process(h, {\PopReq {h'} {\iota'}}, \sigma, h') = (m', \sigma'')
-}
-
-% R-Req1
-\inferrule[\textsc{Proc-Req}] {
-  \sigma(id(r)) = \Val{v}         \quad
-  m'            = {\Res \iota v}  \quad
-} {
-  process(h, {\Req {h'} r \iota}, \sigma, h') = (m', \sigma)
+  process(h, {\Req {h'} r \iota}, \sigma, h) = ({\Req h {r'} {id(r')}} \cdot {\Req {h'} r \iota} \cdot \epsilon, \sigma)
 }
 
 % R-Req3
@@ -534,8 +490,42 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
   h'            = host(r')                 \quad
   m'            = {\Req {h''} {r'} \iota}  \quad
 } {
-  process(h, {\Req {h''} r \iota}, \sigma, h') = (m', \sigma)
+  process(h, {\Req {h''} r \iota}, \sigma, h') = (m' \cdot \epsilon, \sigma)
 }
+
+% R-ReqMat
+\inferrule[\textsc{Proc-ReqMat}] {
+  r = {\Mat {\iota'}}         \quad
+  host(r) = h                 \quad
+  \iota' \notin dom(\sigma)
+} {
+  process(h, {\Req h r \iota}, \sigma, h) = ({\Req h r \iota} \cdot \epsilon, \sigma)
+}
+
+% R-Res
+\inferrule[\textsc{Proc-Res}] {
+  \sigma' = [\iota \mapsto \Val{v}]\sigma
+} {
+  process(h, {\Res \iota v}, \sigma, h) = (\epsilon, \sigma')
+}
+
+% R-PopResLocal
+\inferrule[\textsc{Proc-PopRes}] {
+  \sigma' = [\iota \mapsto {\Fwd r}]\sigma
+} {
+  process(h, {\PopRes {\iota} r}, \sigma, h) = (\epsilon, \sigma')
+}
+
+% R-PopRes
+\inferrule[\textsc{Proc-PopReq}] {
+  \iota    = (h, i)                \quad i~\text{fresh} \quad
+  r        = \text{Mat}(\iota)     \quad
+  m'       = {\PopRes {\iota'} r}  \quad
+  \sigma'' = [\iota \mapsto {\Val \unit}]\sigma
+} {
+  process(h, {\PopReq {h'} {\iota'}}, \sigma, h') = (m' \cdot \epsilon, \sigma'')
+}
+
 \end{mathpar}
 \caption{Message processing.}
 \end{figure}
@@ -550,7 +540,7 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
   \{ (t', \sigma', Q')^h \} \cup H
 }
 
-\inferrule[\textsc{R-Populate}] {
+\inferrule[\textsc{R-PopulateRemote}] {
   \iota = (h, i) \quad i~\text{fresh} \quad
   r     = {\Mat \iota}                \quad
   m     = {\PopReq h \iota }
@@ -560,7 +550,7 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
   \{ (E[r], \sigma, Q)^h, (t', \sigma', Q' \cdot m)^{h'} \} \cup H
 }
 
-\inferrule[\textsc{R-Send}] {
+\inferrule[\textsc{R-SendRemote}] {
   host(r) = h'                          \quad
   h' \neq h                             \quad
   m = {\Req h r {id(r)}}
@@ -570,29 +560,19 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
   \{ (E[id(r)], \sigma, Q)^h, (t', \sigma', Q' \cdot m)^{h'} \} \cup H
 }
 
-\inferrule[\textsc{R-ProcQueue}] {
-  (m', \sigma'') = process(h, m, \sigma, h')
+\inferrule[\textsc{R-ProcQueueRemote}] {
+  (Q'', \sigma'') = process(h, m, \sigma, h')
 } {
   \{ (E[\texttt{await}(\iota)], \sigma, m :: Q)^h, (t', \sigma', Q')^{h'} \} \cup H
   \twoheadrightarrow
-  \{ (E[\texttt{await}(\iota)], \sigma'', Q)^h, (t', \sigma', Q' \cdot m')^{h'} \} \cup H
+  \{ (E[\texttt{await}(\iota)], \sigma'', Q)^h, (t', \sigma', Q' ::: Q'')^{h'} \} \cup H
 }
 
 \end{mathpar}
-\caption{Non-local reduction.}
+\caption{Remote reduction.}
 \end{figure}
 
-\begin{description}[font=\normalfont\itshape\space]
-\item[\textsc{R-Send}] ...
-
-\item[\textsc{R-Req1}] ...
-
-\item[\textsc{R-Req2}] ...
-
-\item[\textsc{R-Req3}] ...
-
-\item[\textsc{R-Req4}] ...
-\end{description}
+ACHTUNG: wir muessen unbedingt erwaehnen, dass all -Remote Regeln jeweils nur asynchrone Nachrichten verschicken! Ansonsten keine Aenderung in h'.
 
 \newpage
 
