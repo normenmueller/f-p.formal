@@ -346,9 +346,6 @@ We write $S' = S + (\iota \mapsto B)$ to express the fact that $S'$ maps $\iota$
 
 Our formalization simplifies the computation model with respect to materialized silos. In case of a silo reference of the form $Mat((h, i))$ we assume that there is a mapping in the corresponding silo store $S$, such that $S((h, i)) = \text{Some}(\Val{v}, \{ h \})$ for some value $v$.
 
-%% r = Mat((h,i)) = init(hdfs://...)
-%% r.unpersist
-
 \begin{figure}[ht!]
 \centering
 
@@ -392,18 +389,6 @@ Our formalization simplifies the computation model with respect to materialized 
 % updates silo store.
 % Goal: theorem which states that persist sets are "correct".
 % We don't lose hosts from persist sets.
-
-\begin{description}[font=\normalfont\itshape\space]
-\item[\textsc{R-Map}] ...
-
-\item[\textsc{R-FMap}] ...
-
-\item[\textsc{R-Await}] ...
-
-\item[\textsc{R-Res}] ...
-
-\item[\textsc{R-ReqLocal}] ...
-\end{description}
 
 Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve communication with other hosts.
 
