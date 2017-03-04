@@ -135,22 +135,15 @@ Classification of $r$ and $\iota$ is specified at Figure~\ref{fig:elems-opsem}.
 \centering
 
 $\ba[t]{l@{\hspace{2mm}}l}
-r ::=                                                  & \mbox{{\it{silo reference values:}}} \\
+r ::=                                                  & \mbox{{\it{lineage}}} \\
 \gap \:\:\:\: \text{Mat}(\iota)                        & \mbox{materialized} \\    
 \gap ~|~  \text{Mapped}(\iota, r, p)                   & \mbox{lineage with \texttt{map}} \\    
 \gap ~|~  \text{FMapped}(\iota, r, p)                  & \mbox{lineage with \texttt{flatMap}} \\   
                                                        & \\   
-\iota  ::= (h,i) \quad \text{where}~i \in \mathbb{N}   & \mbox{decentralized identifier} \\
-                                                       & \\
-Q      ::=                                             & \mbox{{\it{message queue values:}}} \\
-\gap \:\:\:\: \epsilon                                 & \mbox{empty queue} \\
-\gap ~|~    {\Res \iota v} :: Q                        & \mbox{response} \\
-\gap ~|~    {\Req h r \iota} :: Q                      & \mbox{request}  \\
-%\gap ~|~    {\ReqF \iota \omega} :: Q                  & \mbox{request (future)}  \\
-%\gap ~|~    {\ReqE h r \omega} :: Q                    & \mbox{request (fault)} \\
+\iota  ::= (h,i) \quad \text{where}~h \in \mathcal{H}~\text{and}~i \in \mathbb{N}   & \mbox{decentralized identifier} \\
 \ea$
 
-\caption{Elements of the operational model.}
+\caption{Lineages and decentralized identifiers. $\mathcal{H}$ is a countable set of host names.}
 \label{fig:elems-opsem}
 
 \end{figure}
@@ -209,13 +202,12 @@ A lineage build up by those silo reference values can be considered as a {\emph{
 In the following we introduce a function to backtrack the host of a referenced silo.
 
 \begin{defn}[Host]
-  The function application $host(r)$ obtains the host of the silo referenced by $r$; $host$ is defined as follows:
-  
-  $host(r) := \begin{cases}
-    h        & \text{if } r = Mat((h, i)) \\
-    host(r') & \text{if } r = Mapped(\_, r', \_) \\
-    host(r') & \text{if } r = FMapped(\_, r', \_) \\
-    \end{cases}$
+  The function application $host(r) \in \mathcal{H}$ obtains the host of the silo referenced by $r$; $host$ is defined as follows: \\[1ex]
+  $\ba[t]{l@{\hspace{2mm}}l@{\hspace{2mm}}l}
+    host(Mat((h, i)))         & = & h \\
+    host(Mapped(\_, r', \_))  & = & host(r') \\
+    host(FMapped(\_, r', \_)) & = & host(r') \\
+  \ea$
 \end{defn}
 
 Analogous to~\cite{TAPL}, we introduce the notion of an evaluation context and write $E[t]$ for the ordinary term obtained by replacing the hole in $E$ with $t$. Evaluation contexts capture the notion of the ``next subterm to be reduced.''
@@ -244,19 +236,23 @@ E ::=                                                                           
 \ea$ 
 \end{defn}
 
-\begin{defn}[Silo reference identifier]
-    $id(r) := \begin{cases}
-    \iota  & \text{if } r = Mat(\iota) \\
-    \iota  & \text{if } r = Mapped(\iota, r', \_) \\
-    \iota  & \text{if } r = FMapped(\iota, r', \_) \\
-    \end{cases}$
+\begin{defn}[Decentralized identifier]
+  The function application $id(r) \in \mathcal{H} \times \mathbb{N}$ obtains the decentralized identifier of the silo referenced by $r$; $id$ is defined as follows: \\
+  
+  $\ba[t]{l@{\hspace{2mm}}l@{\hspace{2mm}}l}
+    id(Mat(\iota))             & = & \iota \\
+    id(Mapped(\iota, \_, \_))  & = & \iota \\
+    id(FMapped(\iota, \_, \_)) & = & \iota \\
+  \ea$
 \end{defn}
 
 \begin{defn}[Silo reference parent]
-    $parent(r) := \begin{cases}
-    r' & \text{if } r = Mapped(\_, r', \_) \\
-    r' & \text{if } r = FMapped(\_, r', \_) \\
-    \end{cases}$
+  The function $parent \in r \rightharpoonup r$ maps a silo, referenced by $r$, to its parent; $parent$ is defined as follows: \\
+  
+  $\ba[t]{l@{\hspace{2mm}}l@{\hspace{2mm}}l}
+    parent(Mapped(\_, r', \_))  & = & r' \\
+    parent(FMapped(\_, r', \_)) & = & r' \\
+  \ea$
 \end{defn}
 
 \newpage
@@ -319,6 +315,12 @@ E ::=                                                                           
 \caption{Sequential reduction.}
 \end{figure}
 
+\begin{defn}[Store]
+  $\sigma \in \mathcal{H} \times \mathbb{N} \rightharpoonup \Val{v}\uplus\Fwd{r}$.
+\end{defn}
+
+Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve communication with other hosts.
+
 TEXT: Man kann, wenn man will zur Optimierung eine Zusatzregel einfuehren fuer send:
 
 \begin{mathpar}
@@ -345,6 +347,22 @@ TEXT: Man kann, wenn man will zur Optimierung eine Zusatzregel einfuehren fuer s
 We write $S' = S + (\iota \mapsto B)$ to express the fact that $S'$ maps $\iota$ to a value $B$ and otherwise agrees with $S$. $B$ is a value of the form $\Val{v}$ or $\Fwd{r}$; the former contains a materialized value $v$, the latter forwards to silo reference $r$, such that $\iota$ is effectively bound to the same value as the identifier of $r$. We write $S(\iota) = \text{Some}(B)$ to express the fact that $S$ maps $\iota$ to $B$. We write $S(\iota) = \text{None}$ if $S$ does not have a mapping for $\iota$.
 
 Our formalization simplifies the computation model with respect to materialized silos. In case of a silo reference of the form $Mat((h, i))$ we assume that there is a mapping in the corresponding silo store $S$, such that $S((h, i)) = \text{Some}(\Val{v}, \{ h \})$ for some value $v$.
+
+\begin{figure}
+\centering
+$\ba[t]{l@{\hspace{2mm}}l}
+m      ::= & \mbox{{\it{message values:}}} \\
+\gap \:\:\:\: {\Req h r \iota}      & \mbox{request} \\
+\gap ~|~      {\Res \iota v}        & \mbox{response} \\
+ & \\
+Q      ::=                                             & \mbox{{\it{message queue values:}}} \\
+\gap \:\:\:\: \epsilon  & \mbox{empty queue} \\
+\gap ~|~    m :: Q      & \mbox{non-empty queue} \\
+%\gap ~|~    {\ReqF \iota \omega} :: Q                  & \mbox{request (future)}  \\
+%\gap ~|~    {\ReqE h r \omega} :: Q                    & \mbox{request (fault)} \\
+\ea$
+\caption{Message queue}
+\end{figure}
 
 \begin{figure}[ht!]
 \centering
@@ -379,6 +397,8 @@ Our formalization simplifies the computation model with respect to materialized 
 \caption{Local reduction.}
 \end{figure}
 
+Note: function $process$ is defined via the rules shown in Figure~\ref{fig:process}.
+
 % Note: design approach is to *not* replace Fwds in the silo store, since
 % it would require copying data. Instead, we leverage the flexibility of
 % Req messages to correctly forward requests.
@@ -389,8 +409,6 @@ Our formalization simplifies the computation model with respect to materialized 
 % updates silo store.
 % Goal: theorem which states that persist sets are "correct".
 % We don't lose hosts from persist sets.
-
-Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve communication with other hosts.
 
 \newpage
 
@@ -504,7 +522,7 @@ Note, the reduction rules \textsc{R-Map} and \textsc{R-FMap} do not involve comm
 }
 
 \end{mathpar}
-\caption{Message processing.}
+\caption{Message processing.}\label{fig:process}
 \end{figure}
 
 \begin{figure}[ht!]
@@ -697,6 +715,11 @@ ACHTUNG: wir muessen unbedingt erwaehnen, dass all -Remote Regeln jeweils nur as
 \end{mathpar}
 \caption{Type assignment.}
 \end{figure}
+
+\begin{defn}[Store Typing]
+  $\Sigma \in \mathcal{H} \times \mathbb{N} \rightharpoonup T$.
+\end{defn}
+
 
 \newpage
 
