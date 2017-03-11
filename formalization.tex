@@ -315,7 +315,7 @@ E ::=                                                                           
 \caption{Sequential reduction.}
 \end{figure}
 
-\begin{defn}[Store]
+\begin{defn}[Store]\label{def:store}
   $\sigma \in \mathcal{H} \times \mathbb{N} \rightharpoonup \Val{v}\uplus\Fwd{r}$.
 \end{defn}
 
@@ -354,6 +354,8 @@ $\ba[t]{l@{\hspace{2mm}}l}
 m      ::= & \mbox{{\it{message values:}}} \\
 \gap \:\:\:\: {\Req h r \iota}      & \mbox{request} \\
 \gap ~|~      {\Res \iota v}        & \mbox{response} \\
+\gap ~|~      {\PopReq h \iota}     & \mbox{populate request} \\
+\gap ~|~      {\PopRes \iota r}     & \mbox{populate response} \\
  & \\
 Q      ::=                                             & \mbox{{\it{message queue values:}}} \\
 \gap \:\:\:\: \epsilon  & \mbox{empty queue} \\
@@ -524,6 +526,10 @@ Note: function $process$ is defined via the rules shown in Figure~\ref{fig:proce
 \end{mathpar}
 \caption{Message processing.}\label{fig:process}
 \end{figure}
+
+\begin{defn}[Message processing]
+  The function $process \in \mathcal{H} \times m \times S \times \mathcal{H} \rightharpoonup Q \times S$ handles the processing of a message resulting in a new message queue and a new store; here, $S = \mathcal{H} \times \mathbb{N} \rightharpoonup \Val{v} \uplus \Fwd{r}$ is the type of a store (see Def.~\ref{def:store}). $process$ is defined in Fig.~\ref{fig:process}.
+\end{defn}
 
 \begin{figure}[ht!]
 \begin{mathpar}
