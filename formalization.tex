@@ -20,6 +20,9 @@
 %\theoremstyle{definition}
 %\newmdtheoremenv[hidealllines=true,topline=true,bottomline=true,skipabove=\baselineskip,skipbelow=\baselineskip]{prop}{Property}[section]
 
+\newcommand{\highlight}[1]{%
+  \colorbox{gray!50}{$\displaystyle#1$}}
+
 %% Spacing
 \newcommand{\gap}{\quad\quad}
 
@@ -39,6 +42,9 @@
 \newcommand{\Res}[2]{\text{Res}(#1, #2)}
 \newcommand{\PopReq}[2]{\text{PopReq}(#1, #2)}
 \newcommand{\PopRes}[2]{\text{PopRes}(#1, #2)}
+
+%% Persist
+\newcommand{\ResP}[3]{\text{Res}(#1, #2, #3)}
 
 \newcommand{\ReqF}[2]{\text{Req}_{\iota}(#1, #2)}
 \newcommand{\ReqE}[3]{\text{Req}_f(#1, #2, #3)}
@@ -201,7 +207,7 @@ A lineage build up by those silo reference values can be considered as a {\emph{
 
 In the following we introduce a function to backtrack the host of a referenced silo.
 
-\begin{defn}[Host]
+\begin{defn}[Host]\label{def:host}
   The function application $host(r) \in \mathcal{H}$ obtains the host of the silo referenced by $r$; $host$ is defined as follows: \\[1ex]
   $\ba[t]{l@{\hspace{2mm}}l@{\hspace{2mm}}l}
     host(Mat((h, i)))         & = & h \\
@@ -236,7 +242,7 @@ E ::=                                                                           
 \ea$ 
 \end{defn}
 
-\begin{defn}[Decentralized identifier]
+\begin{defn}[Decentralized identifier]\label{def:id}
   The function application $id(r) \in \mathcal{H} \times \mathbb{N}$ obtains the decentralized identifier of the silo referenced by $r$; $id$ is defined as follows: \\
   
   $\ba[t]{l@{\hspace{2mm}}l@{\hspace{2mm}}l}
@@ -246,7 +252,7 @@ E ::=                                                                           
   \ea$
 \end{defn}
 
-\begin{defn}[Silo reference parent]
+\begin{defn}[Silo reference parent]\label{def:parent}
   The function $parent \in r \rightharpoonup r$ maps a silo, referenced by $r$, to its parent; $parent$ is defined as follows: \\
   
   $\ba[t]{l@{\hspace{2mm}}l@{\hspace{2mm}}l}
@@ -359,12 +365,15 @@ m      ::= & \mbox{{\it{message values:}}} \\
  & \\
 Q      ::=                                             & \mbox{{\it{message queue values:}}} \\
 \gap \:\:\:\: \epsilon  & \mbox{empty queue} \\
-\gap ~|~    m :: Q      & \mbox{non-empty queue} \\
+\gap ~|~    m \cdot Q      & \mbox{non-empty queue} \\
 %\gap ~|~    {\ReqF \iota \omega} :: Q                  & \mbox{request (future)}  \\
 %\gap ~|~    {\ReqE h r \omega} :: Q                    & \mbox{request (fault)} \\
 \ea$
 \caption{Message queue}
 \end{figure}
+
+% \newcommand\doubleplus{+\kern-1.3ex+\kern0.8ex}
+% \newcommand\mdoubleplus{\ensuremath{\mathbin{+\mkern-10mu+}}}
 
 \begin{figure}[ht!]
 \centering
@@ -388,9 +397,9 @@ Q      ::=                                             & \mbox{{\it{message queu
 }
 
 \inferrule[\textsc{R-ProcQueueLocal}] {
-  (Q', \sigma') = process(h, m, \sigma, h)
+  process(h, m, \sigma) = (\sigma', Q', h)
 } {
-  (E[\texttt{await}(\iota)], \sigma, m :: Q)^h
+  (E[\texttt{await}(\iota)], \sigma, m \cdot Q)^h
   \longrightarrow
   (E[\texttt{await}(\iota)], \sigma', Q ::: Q')^h
 }
@@ -450,7 +459,7 @@ Note: function $process$ is defined via the rules shown in Figure~\ref{fig:proce
   \sigma(id(r)) = \Val{v}         \quad
   m'            = {\Res \iota v}  \quad
 } {
-  process(h, {\Req {h'} r \iota}, \sigma, h') = (m' \cdot \epsilon, \sigma)
+  process(h, {\Req {h'} r \iota}, \sigma) = (\sigma, m' \cdot \epsilon, h')
 }
 
 % R-ReqMat
@@ -459,7 +468,7 @@ Note: function $process$ is defined via the rules shown in Figure~\ref{fig:proce
   host(r) = h                 \quad
   \iota' \notin dom(\sigma)
 } {
-  process(h, {\Req h r \iota}, \sigma, h) = ({\Req h r \iota} \cdot \epsilon, \sigma)
+  process(h, {\Req h r \iota}, \sigma) = (\sigma, {\Req h r \iota} \cdot \epsilon, h)
 }
 
 % R-ReqMap
@@ -469,7 +478,7 @@ Note: function $process$ is defined via the rules shown in Figure~\ref{fig:proce
   v'              = p(v)                            \quad
   \sigma'         = [\iota' \mapsto \Val{v'}]\sigma
 } {
-  process(h, {\Req {h'} r \iota}, \sigma, h) = ({\Req {h'} r \iota} ::: \epsilon, \sigma')
+  process(h, {\Req {h'} r \iota}, \sigma) = (\sigma', {\Req {h'} r \iota} ::: \epsilon, h)
 }
 
 % R-ReqFMap
@@ -479,7 +488,7 @@ Note: function $process$ is defined via the rules shown in Figure~\ref{fig:proce
   r''             = p(v)    \quad
   \sigma'         = [\iota' \mapsto \Fwd{r''}]\sigma
 } {
-  process(h, {\Req {h'} r \iota}, \sigma, h) = ({\Req {h'} {r''} \iota} ::: \epsilon, \sigma')
+  process(h, {\Req {h'} r \iota}, \sigma) = (\sigma', {\Req {h'} {r''} \iota} ::: \epsilon, h)
 }
 
 % R-Req3 + (R-ReqLocal w/ h' == h und h'' == h)
@@ -488,7 +497,7 @@ Note: function $process$ is defined via the rules shown in Figure~\ref{fig:proce
   h'            = host(r')                 \quad
   m'            = {\Req {h''} {r'} \iota}  \quad
 } {
-  process(h, {\Req {h''} r \iota}, \sigma, h') = (m' \cdot \epsilon, \sigma)
+  process(h, {\Req {h''} r \iota}, \sigma) = (\sigma, m' \cdot \epsilon, h')
 }
 
 % R-ReqParent
@@ -496,21 +505,21 @@ Note: function $process$ is defined via the rules shown in Figure~\ref{fig:proce
   r' = parent(r)                  \quad %
   id(r') \notin dom(\sigma)
 } {
-  process(h, {\Req {h'} r \iota}, \sigma, h) = ({\Req h {r'} {id(r')}} \cdot {\Req {h'} r \iota} \cdot \epsilon, \sigma)
+  process(h, {\Req {h'} r \iota}, \sigma) = (\sigma, {\Req h {r'} {id(r')}} \cdot {\Req {h'} r \iota} \cdot \epsilon, h)
 }
 
 % R-Res
 \inferrule[\textsc{Proc-Res}] {
   \sigma' = [\iota \mapsto \Val{v}]\sigma
 } {
-  process(h, {\Res \iota v}, \sigma, h) = (\epsilon, \sigma')
+  process(h, {\Res \iota v}, \sigma) = (\sigma', \epsilon, h)
 }
 
 % R-PopResLocal
 \inferrule[\textsc{Proc-PopRes}] {
   \sigma' = [\iota \mapsto {\Fwd r}]\sigma
 } {
-  process(h, {\PopRes {\iota} r}, \sigma, h) = (\epsilon, \sigma')
+  process(h, {\PopRes {\iota} r}, \sigma) = (\sigma', \epsilon, h)
 }
 
 % R-PopRes
@@ -520,7 +529,7 @@ Note: function $process$ is defined via the rules shown in Figure~\ref{fig:proce
   m'      = {\PopRes {\iota'} r}  \quad
   \sigma' = [\iota \mapsto {\Val \unit}]\sigma
 } {
-  process(h, {\PopReq {h'} {\iota'}}, \sigma, h') = (m' \cdot \epsilon, \sigma')
+  process(h, {\PopReq {h'} {\iota'}}, \sigma) = (\sigma', m' \cdot \epsilon, h')
 }
 
 \end{mathpar}
@@ -528,7 +537,7 @@ Note: function $process$ is defined via the rules shown in Figure~\ref{fig:proce
 \end{figure}
 
 \begin{defn}[Message processing]
-  The function $process \in \mathcal{H} \times m \times S \times \mathcal{H} \rightharpoonup Q \times S$ handles the processing of a message resulting in a new message queue and a new store; here, $S = \mathcal{H} \times \mathbb{N} \rightharpoonup \Val{v} \uplus \Fwd{r}$ is the type of a store (see Def.~\ref{def:store}). $process$ is defined in Fig.~\ref{fig:process}.
+  The function $process \in \mathcal{H} \times m \times S  \rightharpoonup S \times Q \times \mathcal{H}$ handles the processing of a message resulting in a new message queue and a new store; here, $S = \mathcal{H} \times \mathbb{N} \rightharpoonup \Val{v} \uplus \Fwd{r}$ is the type of a store (see Def.~\ref{def:store}). $process$ is defined in Fig.~\ref{fig:process}.
 \end{defn}
 
 \begin{figure}[ht!]
@@ -562,9 +571,9 @@ Note: function $process$ is defined via the rules shown in Figure~\ref{fig:proce
 }
 
 \inferrule[\textsc{R-ProcQueueRemote}] {
-  (Q'', \sigma'') = process(h, m, \sigma, h')
+  process(h, m, \sigma) = (\sigma'', Q'', h')
 } {
-  \{ (E[\texttt{await}(\iota)], \sigma, m :: Q)^h, (t', \sigma', Q')^{h'} \} \cup H
+  \{ (E[\texttt{await}(\iota)], \sigma, m \cdot Q)^h, (t', \sigma', Q')^{h'} \} \cup H
   \twoheadrightarrow
   \{ (E[\texttt{await}(\iota)], \sigma'', Q)^h, (t', \sigma', Q' ::: Q'')^{h'} \} \cup H
 }
@@ -766,7 +775,7 @@ ACHTUNG: wir muessen unbedingt erwaehnen, dass all -Remote Regeln jeweils nur as
   \Sigma \vdash \text{FMapped}(\iota, r, p)
 }
 
-\inferrule[\textsc{WF-Ref4}] {
+\inferrule[\textsc{WF-Ref3}] {
   \iota \in dom(\Sigma)
 } {
   \Sigma \vdash {\text{Mat}(\iota)}
@@ -796,7 +805,7 @@ ACHTUNG: wir muessen unbedingt erwaehnen, dass all -Remote Regeln jeweils nur as
   \Sigma \vdash \epsilon
 }
 
-\inferrule[\textsc{WF-Q3}] {
+\inferrule[\textsc{WF-Q2}] {
   \Sigma(\iota) = T                   \quad
   \emptyset ; \emptyset \vdash v : T  \quad
   \Sigma \vdash Q
@@ -804,7 +813,7 @@ ACHTUNG: wir muessen unbedingt erwaehnen, dass all -Remote Regeln jeweils nur as
   \Sigma \vdash {\Res \iota v} :: Q
 }
 
-\inferrule[\textsc{WF-Q4}] {
+\inferrule[\textsc{WF-Q3}] {
   \Sigma(id(r)) = \Sigma(\iota) \quad
   \Sigma \vdash r \quad
   \Sigma \vdash Q
@@ -830,10 +839,240 @@ ACHTUNG: wir muessen unbedingt erwaehnen, dass all -Remote Regeln jeweils nur as
 } {
   \Sigma \vdash \{ (t, \sigma, Q)^h \} \cup H
 }
-
 \end{mathpar}
 \caption{Well-formedness.}
 \end{figure}
+
+\section{Persist and Unpersist}
+
+\subsection{Syntax}
+
+\begin{figure}
+  \centering
+$\ba[t]{l@{\hspace{2mm}}l}
+t ::=                                     & \mbox{{\it terms:}}         \\
+\gap \:\:\:\: \ldots                      & \mbox{} \\
+\gap ~|~ \texttt{persist}(t)              & \mbox{persist}     \\
+\gap ~|~ \texttt{unpersist}(t)            & \mbox{unpersist}     \\
+\ea$
+  \caption{Syntax extensions for persist/unpersist.}
+  \label{fig:persist-syntax}
+\end{figure}
+
+\begin{figure}[ht!]
+\centering
+
+$\ba[t]{l@{\hspace{2mm}}l}
+r ::=                                    & \mbox{{\it{lineage:}}} \\
+\gap \:\:\:\: \ldots                     & \mbox{} \\
+\gap ~|~  \text{Persist}(\iota, r, f)    & \mbox{lineage with \texttt{persist}} \\    
+\ea$
+
+\caption{Extension of lineages. $f$ is a binary operator with $f \in \{\cdot\cup\cdot, \cdot\setminus\cdot\}.$}
+\end{figure}
+
+\subsection{Reduction}
+
+\begin{defn}[Host]
+  Definition~\ref{def:host} is hereby extended to handle the following additional case: $host(Persist(\_, r', \_)) = host(r')$
+\end{defn}
+
+\begin{defn}[Evaluation Context]
+  The set of evaluation contexts is defined as follows:
+  
+$\ba[t]{l@{\hspace{2mm}}l}
+E ::=                             & \mbox{\it{evaluation contexts:}} \\
+\gap \:\:\:\: \ldots              & \mbox{} \\
+\gap ~|~  \texttt{persist}(E)     & \mbox{persist} \\
+\gap ~|~  \texttt{unpersist}(E)   & \mbox{unpersist} \\
+\ea$ 
+\end{defn}
+
+\begin{defn}[Decentralized identifier]
+  Definition~\ref{def:id} is hereby extended to handle the following additional case: $id(Persist(\iota, \_, \_)) = \iota$
+\end{defn}
+
+\begin{defn}[Silo reference parent]
+  Definition~\ref{def:parent} is hereby extended to handle the following additional case: $parent(Persist(\_, r', \_)) = r'$
+\end{defn}
+
+\begin{defn}[Consume silo]
+Consume silo referenced by $\iota$ with persist set $P$ in store $\sigma$ \\
+$consume(\iota, P, \sigma) := \begin{cases}
+\sigma - \iota & \text{if } P = \emptyset \\
+\sigma         & \text{otherwise} \\
+\end{cases}$
+\end{defn}
+
+\begin{defn}[Store]\label{def:store2}
+  $\sigma \in \mathcal{H} \times \mathbb{N} \rightharpoonup (\Val{v}\uplus\Fwd{r}) \times \mathcal{P}(\mathcal{H})$.
+\end{defn}
+
+\begin{figure}
+\centering
+\begin{mathpar}
+\inferrule[\textsc{R-Persist}] {
+  r' = \text{Persist}((h, i), r, \cdot \cup \cdot) \quad
+  i~\text{fresh}
+} {
+  E[\texttt{persist}(r)]~|~\sigma
+  \rightarrow^h
+  E[r']~|~\sigma
+}
+
+\inferrule[\textsc{R-Unpersist}] {
+  r' = \text{Persist}((h, i), r, \cdot \setminus \cdot) \quad
+  i~\text{fresh}
+} {
+  E[\texttt{unpersist}(r)]~|~\sigma
+  \rightarrow^h
+  E[r']~|~\sigma
+}
+\end{mathpar}
+\caption{Extensions of sequential reduction.}\label{fig:persist-seq-reduction}
+\end{figure}
+
+\begin{figure}
+\centering
+\begin{mathpar}
+\inferrule[\textsc{Proc-Req}] {
+  \sigma(id(r)) = \highlight{(\Val{v}, P)}       \quad
+  \sigma'       = {\consume {id(r)} P \sigma}
+} {
+  process(h, {\Req {h'} r \iota}, \sigma) = (\sigma', \highlight{{\ResP \iota v P}} \cdot \epsilon, h')
+}
+
+\inferrule[\textsc{Proc-ReqMap}] {
+  r               = \text{Mapped}(\iota', r', p)    \quad
+  \sigma(id(r'))  = \highlight{(\Val{v}, P)}        \quad
+  v'              = p(v)                            \quad
+  \\
+  \sigma'         = [\iota' \mapsto \highlight{(\Val{v'}, \emptyset)}]\sigma \quad
+  \sigma''        = {\consume {id(r')} P {\sigma'}}
+} {
+  process(h, {\Req {h'} r \iota}, \sigma) = (\sigma'', {\Req {h'} r \iota} \cdot \epsilon, h)
+}
+
+\inferrule[\textsc{Proc-ReqFMap}] {
+  r               = \text{FMapped}(\iota', r', p) \quad
+  \sigma(id(r'))  = \highlight{(\Val{v}, P)}      \quad
+  r''             = p(v)                          \quad
+  \\
+  \sigma'         = [\iota' \mapsto \highlight{(\Fwd{r''}, \emptyset)}]\sigma \quad
+  \sigma''        = {\consume {id(r')} P {\sigma'}}
+} {
+  process(h, {\Req {h'} r \iota}, \sigma) = (\sigma'', {\Req {h'} {r''} \iota} \cdot \epsilon, h)
+}
+
+\inferrule[\textsc{Proc-ReqFwd}] {
+  \sigma(id(r)) = \highlight{(\Fwd{r'}, P)} \quad
+  h'            = host(r')                  \quad
+} {
+  process(h, {\Req {h''} r \iota}, \sigma) = (\sigma, {\Req {h''} {r'} \iota} \cdot \epsilon, h')
+}
+
+\inferrule[\textsc{Proc-ReqParent}] {
+  r' = parent(r)                  \quad %
+  id(r') \notin dom(\sigma)
+} {
+  process(h, {\Req {h'} r \iota}, \sigma) = (\sigma, {\Req h {r'} {id(r')}} \cdot {\Req {h'} r \iota} \cdot \epsilon, h)
+}
+
+\inferrule[\textsc{Proc-Res}] {
+  \sigma' = [\iota \mapsto \highlight{(\Val{v}, P)}]\sigma
+} {
+  process(h, \highlight{{\ResP \iota v P}}, \sigma) = (\sigma', \epsilon, h)
+}
+
+\inferrule[\textsc{Proc-PopRes}] {
+  \sigma' = [\iota \mapsto \highlight{({\Fwd r}, \emptyset)}]\sigma
+} {
+  process(h, {\PopRes {\iota} r}, \sigma) = (\sigma', \epsilon, h)
+}
+
+\inferrule[\textsc{Proc-PopReq}] {
+  \iota   = (h, i)                \quad i~\text{fresh} \quad
+  r       = \text{Mat}(\iota)     \quad
+  \sigma' = [\iota \mapsto \highlight{({\Val \unit}, \emptyset)}]\sigma
+} {
+  process(h, {\PopReq {h'} {\iota'}}, \sigma) = (\sigma', {\PopRes {\iota'} r} \cdot \epsilon, h')
+}
+
+\inferrule[\textsc{Proc-ReqPersist}] {
+  r              = {\Per {\iota'} {r'} \star}  \quad
+  \iota'         = (h'', i)                    \quad
+  \sigma(id(r')) = \highlight{(\Val{v}, P)}                \quad
+  P'             = P \star \{h''\}             \\
+  \sigma'        = [\iota' \mapsto \highlight{(\Val{v}, P')}]\sigma  \quad
+  \sigma''       = {\consume {id(r')} P {\sigma'}}
+} {
+  process(h, {\Req {h'} r \iota}, \sigma) = (\sigma'', \highlight{{\ResP \iota v {P'}}} \cdot \epsilon, h')
+}
+\end{mathpar}
+\caption{Extension of message processing.}\label{fig:persist-process}
+\end{figure}
+
+
+\subsection{Typing and Well-Formedness}
+
+\begin{figure}[h]
+\centering
+\begin{mathpar}
+\inferrule[\textsc{T-Persist}] {
+  \Gamma ; \Sigma \vdash t : \texttt{SiloRef}[T]
+} {
+  \Gamma ; \Sigma \vdash \texttt{persist}(t) : \texttt{SiloRef}[T]
+}
+
+\inferrule[\textsc{T-UnPersist}] {
+  \Gamma ; \Sigma \vdash t : \texttt{SiloRef}[T]
+} {
+  \Gamma ; \Sigma \vdash \texttt{unpersist}(t) : \texttt{SiloRef}[T]
+}
+\end{mathpar}
+\caption{Extension of typing.}\label{fig:persist-typing}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\begin{mathpar}
+\inferrule[\textsc{WF-Ref4}] {
+  \Sigma(\iota) = T  \quad
+  \Sigma(id(r)) = T  \quad
+  \Sigma \vdash r
+} {
+  \Sigma \vdash {\Per \iota r {\star}}
+}
+
+\inferrule[\textsc{WF-SiloStore2}] {
+  \Sigma(\iota) = T                   \quad
+  \emptyset ; \emptyset \vdash v : T  \quad
+  \Sigma \vdash \sigma
+} {
+  \Sigma \vdash [\iota \mapsto {\highlight{(\Val v, P)}}]\sigma
+}
+
+\inferrule[\textsc{WF-SiloStore3}] {
+  \Sigma(id(r)) = \Sigma(\iota)      \quad
+  \Sigma \vdash r                    \quad
+  \Sigma \vdash \sigma
+} {
+  \Sigma \vdash [\iota \mapsto {\highlight{(\Fwd r, P)}}]\sigma
+}
+
+\inferrule[\textsc{WF-Q2}] {
+  \Sigma(\iota) = T                   \quad
+  \emptyset ; \emptyset \vdash v : T  \quad
+  \Sigma \vdash Q
+} {
+  \Sigma \vdash {\highlight{\ResP \iota v P}} :: Q
+}
+\end{mathpar}
+\caption{Extension of well-formedness.}\label{fig:persist-wf}
+\end{figure}
+
+\newpage
+\section{Appendix}
 
 \begin{thm}
 \emph{(Substitution Lemma)}\label{th:subst}
