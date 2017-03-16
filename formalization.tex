@@ -1076,109 +1076,96 @@ $consume(\iota, P, \sigma) := \begin{cases}
 
 \begin{thm}
 \emph{(Substitution Lemma)}\label{th:subst}
-If $\Gamma , x : T' ; \Sigma ; \Delta \vdash t : T$ and $\Gamma ; \Sigma ; \Delta \vdash v : T'$ then $\Gamma ; \Sigma ; \Delta \vdash [x \mapsto v]t : T$.
+If $\Gamma , x : T' ; \Sigma \vdash t : T$ and $\Gamma ; \Sigma \vdash v : T'$ then $\Gamma ; \Sigma \vdash [x \mapsto v]t : T$.
 \end{thm}
 \begin{proof}
-By induction on the derivation of $\Gamma , x : T' ; \Sigma ; \Delta \vdash t : T$.
+By induction on the derivation of $\Gamma , x : T' ; \Sigma \vdash t : T$.
 \end{proof}
 
 \begin{thm}
 \emph{(Queue Concat)}\label{lem:queue-concat}
-If $\Delta ; \Sigma \vdash Q$ and $\Delta ; \Sigma \vdash Q'$ then $\Delta ; \Sigma \vdash Q ::: Q'$.
+If $\Sigma \vdash Q$ and $\Sigma \vdash Q'$ then $\Sigma \vdash Q ::: Q'$.
 \end{thm}
 \begin{proof}
 By induction on the length of $Q$. The case where $Q = \epsilon$ is trivial.
 
-Case $Q = m :: Q''$.
+Case $Q = m \cdot Q''$.
 \begin{enumerate}
-\item[A1.] By WF-Q1-4, $\Delta ; \Sigma \vdash Q''$.
-\item[A2.] By the IH, $\Delta ; \Sigma \vdash Q'' ::: Q'$.
+\item[A1.] By WF-Q1-3, $\Sigma \vdash Q''$.
+\item[A2.] By the IH, $\Sigma \vdash Q'' ::: Q'$.
 \end{enumerate}
 
 \begin{itemize}
-\item Case $m = {\ReqF \iota \omega}$.
+\item Case $m = {\ResP \iota v P}$.
 \begin{enumerate}
 % 1.
 \item By the assumption and WF-Q2
   \begin{enumerate}[label=(\alph*)]
-  \item $\Delta(\omega) = T$
-  \item $\Sigma(\iota) = \texttt{Future}[T]$
-  \item $\Delta ; \Sigma \vdash Q''$
+  \item $\Sigma(\iota) = T$
+  \item $\emptyset ; \emptyset \vdash v : T$
+  \item $\Sigma \vdash Q''$
   \end{enumerate}
 % 2.
-\item By A2., 1.a-b), and WF-Q2, $\Delta ; \Sigma \vdash m :: Q'' ::: Q'$.
+\item By A2., 1.a-b), and WF-Q2, $\Sigma \vdash m \cdot Q'' ::: Q'$.
 \end{enumerate}
 
-\item Case $m = {\Res \omega v P}$.
+\item Case $m = {\Req h r \iota}$.
 \begin{enumerate}
 % 1.
 \item By the assumption and WF-Q3
   \begin{enumerate}[label=(\alph*)]
-  \item $\Delta(\omega) = T$
-  \item $\emptyset ; \emptyset \vdash v : T$
-  \item $\Delta ; \Sigma \vdash Q''$
+  \item $\Sigma(id(r)) = \Sigma(\iota)$
+  \item $\Sigma \vdash r$
+  \item $\Sigma \vdash Q''$
   \end{enumerate}
 % 2.
-\item By A2., 1.a-b), and WF-Q3, $\Delta ; \Sigma \vdash m :: Q'' ::: Q'$.
-\end{enumerate}
-
-\item Case $m = {\Req h r \omega}$.
-\begin{enumerate}
-% 1.
-\item By the assumption and WF-Q4
-  \begin{enumerate}[label=(\alph*)]
-  \item $\Delta(id(r)) = \Delta(\omega)$
-  \item $\Delta ; \Sigma \vdash Q''$
-  \item $\Delta \vdash r$
-  \end{enumerate}
-% 2.
-\item By A2., 1.a,c), and WF-Q4, $\Delta ; \Sigma \vdash m :: Q'' ::: Q'$.
+\item By A2., 1.a-b), and WF-Q3, $\Sigma \vdash m \cdot Q'' ::: Q'$.
 \end{enumerate}
 \end{itemize}
 \end{proof}
 
 \begin{thm}
 \emph{(Queue Ordering)}\label{lem:queue-ordering}
-If $\Delta ; \Sigma \vdash m :: Q$ then $\Delta ; \Sigma \vdash Q \cdot m$.
+If $\Sigma \vdash m \cdot Q$ then $\Sigma \vdash Q \cdot m$.
 \end{thm}
 \begin{proof}
-By the assumption and WF-Q1-4, $\Delta ; \Sigma \vdash m :: \epsilon$ and $\Delta ; \Sigma \vdash Q$. By Lemma~\ref{lem:queue-concat}, $\Delta ; \Sigma \vdash Q ::: (m :: \epsilon)$.
+By the assumption and WF-Q1-3, $\Sigma \vdash m \cdot \epsilon$ and $\Sigma \vdash Q$. By Lemma~\ref{lem:queue-concat}, $\Sigma \vdash Q ::: (m \cdot \epsilon)$.
 \end{proof}
 
 \begin{thm}
 \emph{(Serializable Values)}\label{lem:ser-values}
-If $\Gamma ; \Sigma ; \Delta \vdash v : T$ and $serializable(T)$ then $\emptyset ; \emptyset ; \Delta \vdash v : T$.
+If $\Gamma ; \Sigma \vdash v : T$ and $serializable(T)$ then $\emptyset ; \emptyset \vdash v : T$.
 \end{thm}
 \begin{proof}
-By induction on a derivation of $\Gamma ; \Sigma ; \Delta \vdash v : T$ with a case analysis on the last applied rule.
+By induction on a derivation of $\Gamma ; \Sigma \vdash v : T$ with a case analysis on the last applied rule.
 
 \begin{itemize}
-\item Case T-SiloRef follows trivially.
+\item Case \textsc{T-SiloRef} follows trivially.
 
-\item Case T-Record.
+\item Case \textsc{T-Record}.
 \begin{enumerate}
 % 1.
 \item By the assumptions
   \begin{enumerate}[label=(\alph*)]
-  \item $\Gamma ; \Sigma ; \Delta \vdash v : T$
+  \item $\Gamma ; \Sigma \vdash v : T$
   \item $serializable(T)$
   \end{enumerate}
 % 2.
-\item By T-Record
+\item By \textsc{T-Record}
   \begin{enumerate}[label=(\alph*)]
   \item $v = \{\seq{l = v}\}$
   \item $T = \{\seq{l : T}\}$
-  \item $\Gamma ; \Sigma ; \Delta \vdash \seq{v} : \seq{T}$
+  \item $\Gamma ; \Sigma \vdash \seq{v} : \seq{T}$
   \end{enumerate}
 % 3.
-\item By 2.b) and S-Record, $\forall T_i \in \seq{T}.~serializable(T_i)$.
+\item By 2.b) and \textsc{S-Record}, $\forall T_i \in \seq{T}.~serializable(T_i)$.
 % 4.
-\item By 2.c), 3., and the IH, $\emptyset ; \emptyset ; \Delta \vdash \seq{v} : \seq{T}$.
+\item By 2.c), 3., and the IH, $\emptyset ; \emptyset \vdash \seq{v} : \seq{T}$.
 % 5.
-\item By 4. and T-Record, $\emptyset ; \emptyset ; \Delta \vdash \{\seq{l = v}\} : \{\seq{l : T}\}$.
+\item By 4. and \textsc{T-Record}, $\emptyset ; \emptyset \vdash \{\seq{l = v}\} : \{\seq{l : T}\}$.
 \end{enumerate}
 
-\item Case T-Spore is analogous to case T-Record.
+\item Case \textsc{T-Spore} is analogous to case \textsc{T-Record}.
 \end{itemize}
 \end{proof}
 
