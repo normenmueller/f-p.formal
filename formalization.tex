@@ -479,7 +479,7 @@ Note: function $process$ is defined via the rules shown in Figure~\ref{fig:proce
   v'              = p(v)                            \quad
   \sigma'         = [\iota' \mapsto \Val{v'}]\sigma
 } {
-  process(h, {\Req {h'} r \iota}, \sigma) = (\sigma', {\Req {h'} r \iota} ::: \epsilon, h)
+  process(h, {\Req {h'} r \iota}, \sigma) = (\sigma', {\Req {h'} r \iota} \cdot \epsilon, h)
 }
 
 % R-ReqFMap
@@ -489,7 +489,7 @@ Note: function $process$ is defined via the rules shown in Figure~\ref{fig:proce
   r''             = p(v)    \quad
   \sigma'         = [\iota' \mapsto \Fwd{r''}]\sigma
 } {
-  process(h, {\Req {h'} r \iota}, \sigma) = (\sigma', {\Req {h'} {r''} \iota} ::: \epsilon, h)
+  process(h, {\Req {h'} r \iota}, \sigma) = (\sigma', {\Req {h'} {r''} \iota} \cdot \epsilon, h)
 }
 
 % R-Req3 + (R-ReqLocal w/ h' == h und h'' == h)
@@ -671,8 +671,8 @@ ACHTUNG: wir muessen unbedingt erwaehnen, dass all -Remote Regeln jeweils nur as
 \inferrule[\textsc{T-Spore}] {
   \Gamma ; \Sigma \vdash \seq{t} : \seq{T}     \quad
   \seq{x : T}, x : T ; \emptyset \vdash t : T' \quad
-  \forall T_i \in \seq{T}.~serializable(T_i)
-} { 
+  \forall S \in \seq{T} , T'.~serializable(S)
+} {
   \Gamma ; \Sigma \vdash (\texttt{spore}~\{~\seq{x : T = t}~; (x: T) \Rightarrow t~\}) : T \Rightarrow T'~\{~\texttt{type}~\mathcal{C} = \seq{T}~\}
 }
 
@@ -811,7 +811,7 @@ ACHTUNG: wir muessen unbedingt erwaehnen, dass all -Remote Regeln jeweils nur as
   \emptyset ; \emptyset \vdash v : T  \quad
   \Sigma \vdash Q
 } {
-  \Sigma \vdash {\Res \iota v} :: Q
+  \Sigma \vdash {\Res \iota v} \cdot Q
 }
 
 \inferrule[\textsc{WF-Q3}] {
@@ -819,7 +819,7 @@ ACHTUNG: wir muessen unbedingt erwaehnen, dass all -Remote Regeln jeweils nur as
   \Sigma \vdash r \quad
   \Sigma \vdash Q
 } {
-  \Sigma \vdash {\Req h r \iota} :: Q
+  \Sigma \vdash {\Req h r \iota} \cdot Q
 }
 
 \inferrule[\textsc{WF-HostConfig}] {
@@ -897,7 +897,7 @@ E ::=                             & \mbox{\it{evaluation contexts:}} \\
   Definition~\ref{def:parent} is hereby extended to handle the following additional case: $parent(Persist(\_, r', \_)) = r'$
 \end{defn}
 
-\begin{defn}[Consume silo]
+\begin{defn}[Consume silo]\label{def:consume}
 Consume silo referenced by $\iota$ with persist set $P$ in store $\sigma$ \\
 $consume(\iota, P, \sigma) := \begin{cases}
 \sigma - \iota & \text{if } P = \emptyset \\
@@ -1012,7 +1012,6 @@ $consume(\iota, P, \sigma) := \begin{cases}
 \end{mathpar}
 \caption{Extension of message processing.}\label{fig:persist-process}
 \end{figure}
-
 
 \subsection{Typing and Well-Formedness}
 
@@ -1171,18 +1170,118 @@ By induction on a derivation of $\Gamma ; \Sigma \vdash v : T$ with a case analy
 \end{proof}
 
 \begin{lem}
-\emph{(Weakening of Store Typing)}\label{th:weakening-store-typing}
+\emph{(Weakening of Store Typing)}\label{lem:weakening-store-typing}
 If $\Gamma ; \Sigma \vdash t : T$ and $\iota \notin \Sigma$ then $\Gamma ; \Sigma' \vdash t : T$ where $\Sigma' = [\iota \mapsto T]\Sigma$.
 \end{lem}
 \begin{proof}
 By induction on the derivation of $\Gamma ; \Sigma \vdash t : T$.
 \end{proof}
 
-\begin{lem}\emph{(Super)}\label{lem:super}
+\begin{lem}\emph{(Process)}\label{lem:process}
 If $\Sigma \vdash \sigma$, $\Sigma \vdash m \cdot \emptyset$, and $process(h, m, \sigma) = (\sigma', Q', h')$ then $\Sigma' \vdash \sigma'$ and $\Sigma' \vdash Q'$ for some $\Sigma' \supseteq \Sigma$.
 \end{lem}
 \begin{proof}
-% XXXXX
+\begin{itemize}
+\item Case Proc-Req.
+\begin{enumerate}
+% 1.
+\item By the assumptions
+  \begin{enumerate}[label=(\alph*)]
+  \item $\Sigma \vdash \sigma$
+  \item $\Sigma \vdash m \cdot \emptyset$
+  \item $process(h, m, \sigma) = (\sigma', Q', h')$
+  \end{enumerate}
+% 2.
+\item By Proc-Req
+  \begin{enumerate}[label=(\alph*)]
+  \item $m = {\Req {h'} r \iota}$
+  \item $\sigma(id(r)) = ({\Val v}, P)$
+  \item $m' = {\ResP \iota v P}$
+  \item $Q' = m' \cdot \epsilon$
+  \item $\sigma' = consume(id(r), P, \sigma)$
+  \end{enumerate}
+% 3.
+\item Define $\Sigma' := \Sigma$.
+% 4.
+\item By 2.e) and Def.~\ref{def:consume}, $dom(\sigma') \subseteq dom(\sigma)$.
+% 5.
+\item By 1.a), 3., 4., and WF-SiloStore1-3, $\Sigma' \vdash \sigma'$.
+% 6.
+\item By 1.b), 2.a), WF-Q1, and WF-Q3
+  \begin{enumerate}[label=(\alph*)]
+  \item $\Sigma(id(r)) = \Sigma(\iota)$
+  \item $\Sigma \vdash r$
+  \end{enumerate}
+% 7.
+\item $T := \Sigma(id(r))$.
+% 8.
+\item By 1.a), 2.b), 7., and WF-SiloStore2, $\emptyset ; \emptyset \vdash v : T$.
+% 9.
+\item By 2.c-d), 6.a), 7., 8., WF-Q1, and WF-Q2, $\Sigma \vdash Q'$.
+% 10.
+\item 1.a), 2.e), 3., and 9. close this case.
+\end{enumerate}
+
+\item Cases Proc-ReqMat, Proc-ReqFwd, Proc-ReqParent follow analogously.
+
+\item Case Proc-ReqMap.
+\begin{enumerate}
+% 1.
+\item By the assumptions
+  \begin{enumerate}[label=(\alph*)]
+  \item $\Sigma \vdash \sigma$
+  \item $\Sigma \vdash m \cdot \emptyset$
+  \item $process(h, m, \sigma) = (\sigma'', Q', h')$
+  \end{enumerate}
+% 2.
+\item By Proc-ReqMap
+  \begin{enumerate}[label=(\alph*)]
+  \item $m = {\Req {h'} r \iota}$
+  \item $r = {\Mapped {\iota'} {r'} p}$
+  \item $\sigma(id(r')) = ({\Val v}, P)$
+  \item $v' = p(v)$
+  \item $\sigma' = [\iota' \mapsto ({\Val {v'}}, \emptyset)]\sigma$
+  \item $Q' = {\Req {h'} r \iota} \cdot \epsilon$
+  \item $\sigma'' = consume(id(r'), P, \sigma')$
+  \end{enumerate}
+% 3.
+\item By 1.b), 2.a), WF-Q1, and WF-Q3
+  \begin{enumerate}[label=(\alph*)]
+  \item $\Sigma(id(r)) = \Sigma(\iota)$
+  \item $\Sigma \vdash r$
+  \end{enumerate}
+% 4.
+\item By 2.b), 3.b), and WF-Ref1
+  \begin{enumerate}[label=(\alph*)]
+  \item $\Sigma(\iota') = T$
+  \item $\Sigma(id(r')) = T'$
+  \item $\exists \Gamma, \Sigma.~\Gamma ; \Sigma \vdash p : T' \Rightarrow T~\{\ldots\}$
+  \item $\Sigma \vdash r'$
+  \end{enumerate}
+% 5.
+\item Define $\Sigma' := \Sigma$.
+% 6.
+\item By 3.a-b), 5., WF-Q1, and WF-Q3, $\Sigma' \vdash {\Req {h'} r \iota} \cdot \epsilon$.
+% 7.
+\item By 1.a), 2.c), 4.b), and WF-SiloStore2, $\emptyset ; \emptyset \vdash v : T'$.
+% 8.
+\item By 2.d), 4.c), 7., and T-AppSpore, $\Gamma, \Sigma \vdash v' : T$.
+% 9.
+\item By 4.c) and T-Spore, $serializable(T)$.
+% 10.
+\item By 8., 9., and Lemma~\ref{lem:ser-values}, $\emptyset ; \emptyset \vdash v' : T$.
+% 11.
+\item By 1.a), 2.e), 4.a), 5., 10., and WF-SiloStore2, $\Sigma' \vdash \sigma'$.
+% 12.
+\item By 2.g) and Def.~\ref{def:consume}, $dom(\sigma'') \subseteq dom(\sigma')$, and therefore by 11., $\Sigma' \vdash \sigma''$.
+% 13.
+\item 5., 6., and 12. close this case.
+\end{enumerate}
+
+% TODO: expand for debugging
+\item Cases Proc-ReqFMap, Proc-Res, Proc-PopRes, and Proc-PopReq follow analogously.
+
+\end{itemize}
 \end{proof}
 
 \begin{thm}
@@ -1194,7 +1293,7 @@ If $\Sigma \vdash \sigma$, $\Sigma \vdash m \cdot \emptyset$, and $process(h, m,
 
 \item If $\Sigma \vdash (t, \sigma, Q)^h$ and $(t, \sigma, Q)^h \longrightarrow (t', \sigma', Q')^h$ then $\Sigma' \vdash (t', \sigma', Q')^h$ for some $\Sigma' \supseteq \Sigma$.
 
-%\item If $\Delta \vdash H$ and $H \twoheadrightarrow H'$ then $\Delta' \vdash H'$ for some $\Delta' \supseteq \Delta$.
+\item If $\Sigma \vdash H$ and $H \twoheadrightarrow H'$ then $\Sigma' \vdash H'$ for some $\Sigma' \supseteq \Sigma$.
 
 \end{enumerate}
 
@@ -1280,9 +1379,9 @@ Part 1: by induction on a derivation of $t~|~\sigma \rightarrow^h t'~|~\sigma'$ 
 % 8.
 \item By 2.c), 6., 7., and T-SiloRef, $\Gamma ; \Sigma' \vdash r' : \texttt{SiloRef}[T']$.
 % 9.
-\item By 2.d), 3., 4.a), 6., and Lemma~\ref{th:weakening-store-typing}, $\Gamma ; \Sigma' \vdash \texttt{map}(r, p) : \texttt{SiloRef}[T']$.
+\item By 2.d), 3., 4.a), 6., and Lemma~\ref{lem:weakening-store-typing}, $\Gamma ; \Sigma' \vdash \texttt{map}(r, p) : \texttt{SiloRef}[T']$.
 % 10.
-\item By 1.a), 2.d), 6., and Lemma~\ref{th:weakening-store-typing}, $\Gamma ; \Sigma' \vdash t : T$.
+\item By 1.a), 2.d), 6., and Lemma~\ref{lem:weakening-store-typing}, $\Gamma ; \Sigma' \vdash t : T$.
 % 11.
 \item By 2.a-b), 8., 9., 10., $\Gamma ; \Sigma' \vdash t' : T$.
 % 12.
@@ -1385,7 +1484,7 @@ Part 2: by induction on a derivation of $(t, \sigma, Q)^h \longrightarrow (t', \
 % 7.
 \item By 6.b), 3.b), and WF-Q3, $\Sigma \vdash {\Req h r {id(r)}} :: Q$.
 % 8.
-\item By 7. and Lemma~\ref{lem:queue-reordering}, $\Sigma \vdash Q \cdot {\Req h r {id(r)}}$.
+\item By 7. and Lemma~\ref{lem:queue-ordering}, $\Sigma \vdash Q \cdot {\Req h r {id(r)}}$.
 % 9.
 \item By 6.a) and T-Ident, $\Gamma ; \Sigma \vdash id(r) : \texttt{Future}[T'']$.
 % 10.
@@ -1411,20 +1510,26 @@ Part 2: by induction on a derivation of $(t, \sigma, Q)^h \longrightarrow (t', \
   \item $process(h, m, \sigma) = (\sigma', Q', h)$
   \item $Q' = \hat{Q} ::: Q''$
   \end{enumerate}
-% 3. XXXXXXXX
-\item By 2.d) and Super-Lemma
+% 3.
+\item By 1.a) and WF-HostConfig
+  \begin{enumerate}[label=(\alph*)]
+  \item $\Sigma \vdash \sigma$
+  \item $\Sigma \vdash Q$
+  \item $\Gamma ; \Sigma \vdash t : T$ for some $\Gamma$
+  \end{enumerate}
+% 4.
+\item By 2.c), 3.b), and WF-Q1-3, $\Sigma \vdash m \cdot \epsilon$.
+% 5.
+\item By 2.d), 3.a), 4., and Lemma~\ref{lem:process}
   \begin{enumerate}[label=(\alph*)]
   \item $\Sigma' \supseteq \Sigma$
   \item $\Sigma' \vdash \sigma'$
   \item $\Sigma' \vdash Q'$
   \end{enumerate}
-
-% subgoals:
-% $\Sigma' \vdash \sigma'$
-% $\Sigma' \vdash Q'$
-% $\Gamma ; \Sigma' \vdash t : T$  // weakening
-% goal:
-% $\Sigma' \vdash (t, \sigma', Q')^h$
+% 6.
+\item By 3.c), 5.a), and Lemma~\ref{lem:weakening-store-typing}, $\Gamma ; \Sigma' \vdash t : T$.
+% 7.
+\item 5.a-c), 6., and WF-HostConfig close this case.
 
 \end{enumerate}
 
