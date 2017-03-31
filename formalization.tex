@@ -753,7 +753,7 @@ ACHTUNG: wir muessen unbedingt erwaehnen, dass all -Remote Regeln jeweils nur as
 }
 
 \inferrule[\textsc{WF-Store2}] {
-  \Sigma \vdash \sigma
+  \Sigma \supseteq \Sigma' \quad \Sigma' \vdash \sigma
 } {
   [\iota \mapsto T]\Sigma \vdash [\iota \mapsto v]\sigma
 }
@@ -1173,10 +1173,14 @@ By induction on a derivation of $\Gamma ; \Sigma \vdash v : T$ with a case analy
 
 \begin{lem}
 \emph{(Weakening of Store Typing)}\label{lem:weakening-store-typing}
-If $\Gamma ; \Sigma \vdash t : T$ and $\iota \notin \Sigma$ then $\Gamma ; \Sigma' \vdash t : T$ where $\Sigma' = [\iota \mapsto T]\Sigma$.
+\begin{enumerate}
+\item If $\Gamma ; \Sigma \vdash t : T$ and $\iota \notin \Sigma$ then $\Gamma ; \Sigma' \vdash t : T$ where $\Sigma' = [\iota \mapsto T]\Sigma$.
+\item If $\Sigma \vdash (t, \sigma, Q)^h$ and $\iota \notin \Sigma$ then $\Sigma' \vdash (t, \sigma, Q)^h$ where $\Sigma' = [\iota \mapsto T]\Sigma$.
+\item If $\Sigma \vdash H$ and $\iota \notin \Sigma$ then $\Sigma' \vdash H$ where $\Sigma' = [\iota \mapsto T]\Sigma$.
+\end{enumerate}
 \end{lem}
 \begin{proof}
-By induction on the derivation of $\Gamma ; \Sigma \vdash t : T$.
+Part 1: By induction on the derivation of $\Gamma ; \Sigma \vdash t : T$. Part 2: By induction on the derivation of $\Sigma \vdash (t, \sigma, Q)^h$. Part 3: By induction on the derivation of $\Sigma \vdash H$.
 \end{proof}
 
 \begin{lem}\emph{(Process)}\label{lem:process}
@@ -1381,9 +1385,9 @@ Part 1: by induction on a derivation of $t~|~\sigma \rightarrow^h t'~|~\sigma'$ 
 % 8.
 \item By 2.c), 6., 7., and T-SiloRef, $\Gamma ; \Sigma' \vdash r' : \texttt{SiloRef}[T']$.
 % 9.
-\item By 2.d), 3., 4.a), 6., and Lemma~\ref{lem:weakening-store-typing}, $\Gamma ; \Sigma' \vdash \texttt{map}(r, p) : \texttt{SiloRef}[T']$.
+\item By 2.d), 3., 4.a), 6., and part 1 of Lemma~\ref{lem:weakening-store-typing}, $\Gamma ; \Sigma' \vdash \texttt{map}(r, p) : \texttt{SiloRef}[T']$.
 % 10.
-\item By 1.a), 2.d), 6., and Lemma~\ref{lem:weakening-store-typing}, $\Gamma ; \Sigma' \vdash t : T$.
+\item By 1.a), 2.d), 6., and part 1 of Lemma~\ref{lem:weakening-store-typing}, $\Gamma ; \Sigma' \vdash t : T$.
 % 11.
 \item By 2.a-b), 8., 9., 10., $\Gamma ; \Sigma' \vdash t' : T$.
 % 12.
@@ -1529,7 +1533,7 @@ Part 2: by induction on a derivation of $(t, \sigma, Q)^h \longrightarrow (t', \
   \item $\Sigma' \vdash Q'$
   \end{enumerate}
 % 6.
-\item By 3.c), 5.a), and Lemma~\ref{lem:weakening-store-typing}, $\Gamma ; \Sigma' \vdash t : T$.
+\item By 3.c), 5.a), and part 1 of Lemma~\ref{lem:weakening-store-typing}, $\Gamma ; \Sigma' \vdash t : T$.
 % 7.
 \item 5.a-c), 6., and WF-HostConfig close this case.
 
@@ -1544,7 +1548,7 @@ Part 3: by induction on a derivation of $H \twoheadrightarrow H'$ with case anal
 % 1.
 \item By the assumptions
   \begin{enumerate}[label=(\alph*)]
-  \item $\vdash H$
+  \item $\Sigma \vdash H$
   \item $H \twoheadrightarrow H'$
   \end{enumerate}
 % 2.
@@ -1554,16 +1558,18 @@ Part 3: by induction on a derivation of $H \twoheadrightarrow H'$ with case anal
   \item $H' = \{ (t', \sigma', Q')^h \} \cup H''$
   \item $(t, \sigma, Q)^h \longrightarrow (t', \sigma', Q')^h$
   \end{enumerate}
-% 3.
+% 3. 
 \item By 1.a), 2.a), and WF-Host2
   \begin{enumerate}[label=(\alph*)]
-  \item $\Sigma \vdash (t, \sigma, Q)^h$ for some $\Sigma$
-  \item $\vdash H''$
+  \item $\Sigma \vdash (t, \sigma, Q)^h$
+  \item $\Sigma \vdash H''$
   \end{enumerate}
 % 4.
-\item By 2.c), 3.a), and part 2, $\Sigma' \vdash (t', \sigma', Q')^h$ and $\Sigma' \supseteq \Sigma$.
+\item By 2.c), 3.a), and part 2, $\Sigma' \vdash (t', \sigma', Q')^h$ for some $\Sigma' \supseteq \Sigma$.
 % 5.
-\item By 2.b), 3.b), 4., and WF-Host2, $\vdash H'$.
+\item By 3.b) and part 3 of Lemma~\ref{lem:weakening-store-typing}, $\Sigma' \vdash H''$.
+% 6.
+\item By 2.b), 4., 5., and WF-Host2, $\Sigma' \vdash H'$.
 \end{enumerate}
 
 \item Case R-PopulateRemote.
@@ -1571,7 +1577,7 @@ Part 3: by induction on a derivation of $H \twoheadrightarrow H'$ with case anal
 % 1.
 \item By the assumptions
   \begin{enumerate}[label=(\alph*)]
-  \item $\vdash H$
+  \item $\Sigma \vdash H$
   % \Delta \vdash \{ (E[\texttt{populate}(\iota, v)], \mu, Q, S)^h \} \cup (\{ (t', \mu', Q', S')^{h'} \} \cup H'')
   \item $H \twoheadrightarrow H'$
   \end{enumerate}
@@ -1587,14 +1593,14 @@ Part 3: by induction on a derivation of $H \twoheadrightarrow H'$ with case anal
 % 3.
 \item By 1.a), 2.a), and WF-Host2
   \begin{enumerate}[label=(\alph*)]
-  \item $\Sigma \vdash (E[\texttt{populate}(h')], \sigma, Q)^h$ for some $\Sigma$
-  \item $\vdash \{ (t', \sigma', Q')^{h'} \} \cup H''$
+  \item $\Sigma \vdash (E[\texttt{populate}(h')], \sigma, Q)^h$
+  \item $\Sigma \vdash \{ (t', \sigma', Q')^{h'} \} \cup H''$
   \end{enumerate}
 % 4.
 \item By 3.b) and WF-Host2
   \begin{enumerate}[label=(\alph*)]
-  \item $\Sigma'' \vdash (t', \sigma', Q')^{h'}$ for some $\Sigma''$
-  \item $\vdash H''$
+  \item $\Sigma \vdash (t', \sigma', Q')^{h'}$
+  \item $\Sigma \vdash H''$
   \end{enumerate}
 % 5.
 \item By 3.a) and WF-HostConfig
@@ -1618,7 +1624,7 @@ Part 3: by induction on a derivation of $H \twoheadrightarrow H'$ with case anal
 % 10.
 \item By 6.b) and T-Populate, $\Gamma ; \Sigma' \vdash \texttt{populate}(h') : \texttt{SiloRef}[\texttt{Unit}]$.
 % 11.
-\item By 5.c), 7., and Lemma~\ref{lem:weakening-store-typing}$\Gamma ; \Sigma' \vdash E[\texttt{populate}(h')] : T$.
+\item By 5.c), 7., and part 1 of Lemma~\ref{lem:weakening-store-typing}, $\Gamma ; \Sigma' \vdash E[\texttt{populate}(h')] : T$.
 % 12.
 \item By 9., 10., and 11., $\Gamma ; \Sigma' \vdash E[\text{Mat}(\iota)] : T$.
 % 13.
@@ -1628,14 +1634,14 @@ Part 3: by induction on a derivation of $H \twoheadrightarrow H'$ with case anal
 % 15.
 \item By 4.a) and WF-HostConfig
   \begin{enumerate}[label=(\alph*)]
-  \item $\Sigma'' \vdash \sigma'$
-  \item $\Sigma'' \vdash Q'$
-  \item $\Gamma' ; \Sigma'' \vdash t' : T''$
+  \item $\Sigma \vdash \sigma'$
+  \item $\Sigma \vdash Q'$
+  \item $\Gamma' ; \Sigma \vdash t' : T''$
   \end{enumerate}
 % 16.
-\item By 15.a-c), and WF-HostConfig, $\Sigma'' \vdash (t', \sigma', Q')^{h'}$.
+\item By 15.a-c), and WF-HostConfig, $\Sigma \vdash (t', \sigma', Q')^{h'}$.
 % 17.
-\item By 2.b), 4.b), 14., 16., and WF-Host2, $\vdash H'$.
+\item By 2.b), 4.b), 14., 16., and WF-Host2, $\Sigma \vdash H'$.
 \end{enumerate}
 
 \item Case R-SendRemote.
@@ -1643,7 +1649,7 @@ Part 3: by induction on a derivation of $H \twoheadrightarrow H'$ with case anal
 % 1.
 \item By the assumptions
   \begin{enumerate}[label=(\alph*)]
-  \item $\vdash H$
+  \item $\Sigma \vdash H$
   \item $H \twoheadrightarrow H'$
   \end{enumerate}
 % 2.
@@ -1658,9 +1664,9 @@ Part 3: by induction on a derivation of $H \twoheadrightarrow H'$ with case anal
 % 3.
 \item By 1.a), 2.a), and WF-Host2
   \begin{enumerate}[label=(\alph*)]
-  \item $\Sigma \vdash (E[\texttt{send}(r)], \sigma, Q)^h$ for some $\Sigma$
-  \item $\Sigma' \vdash (t', \sigma', Q')^{h'}$ for some $\Sigma'$
-  \item $\vdash H''$
+  \item $\Sigma \vdash (E[\texttt{send}(r)], \sigma, Q)^h$ 
+  \item $\Sigma \vdash (t', \sigma', Q')^{h'}$
+  \item $\Sigma \vdash H''$
   \end{enumerate}
 % 4.
 \item By 3.a) and WF-HostConfig
@@ -1691,241 +1697,94 @@ Part 3: by induction on a derivation of $H \twoheadrightarrow H'$ with case anal
 \item By 4.a-b), 9., and WF-HostConfig, $\Sigma \vdash (E[id(r)], \sigma, Q)^h$.
 % 11.
 \item By 2.e), 7.b), and WF-Q1-3, $\Sigma \vdash m \cdot \epsilon$.
-% 12. XXXXXXXXXXXXXXXXXXXXXXX
+% 12. 
 \item By 3.b) and WF-HostConfig
   \begin{enumerate}[label=(\alph*)]
-  \item $\Sigma' \vdash \sigma'$
-  \item $\Sigma' \vdash Q'$
-  \item $\Gamma' ; \Sigma' \vdash t' : T'$
+  \item $\Sigma \vdash \sigma'$
+  \item $\Sigma \vdash Q'$
+  \item $\Gamma' ; \Sigma \vdash t' : T'$
   \end{enumerate}
 % 13.
-% key: \Sigma' \vdash m \cdot \epsilon
-% m = {\Req h r {id(r)}}  % 2.e)
-% goal: \Sigma' \vdash r
-% \Sigma' muss allen identifiers einen Typ geben, genauso wie \Sigma
-
-% was wir ausschliessen muessen ist: \Sigma(\iota') \neq \Sigma'(\iota')
-
-
-% 13.
-\item By 11., 12.b), and Lemma~\ref{lem:queue-concat}, $\Sigma' \vdash Q' \cdot m$.
-% 17.
-\item By 15.a-b), 16., 15.d), and WF-HostConfig, $\Delta ; \Sigma' \vdash (t', \mu', Q' \cdot m, S')^{h'}$.
-% 18.
-\item By 3.c), 13., 17., and WF-Host2, $\Delta \vdash H'$.
-\end{enumerate}
-
-\item Case R-Req1.
-\begin{enumerate}
-% 1.
-\item By the assumptions
-  \begin{enumerate}[label=(\alph*)]
-  \item $\Delta \vdash H$
-  \item $H \twoheadrightarrow H'$
-  \end{enumerate}
-% 2.
-\item By R-Req1
-  \begin{enumerate}[label=(\alph*)]
-  \item $H = \{ (E[\texttt{await}(\iota)], \mu, Q, S)^h, (t', \mu', Q', S')^{h'} \} \cup H''$
-  \item $H' = \{ (E[\texttt{await}(\iota)], \mu, Q'', S)^h, (t', \mu', Q' \cdot m, S')^{h'} \} \cup H''$
-  \item $Q        = {\Req {h'} r \omega} :: Q''$
-  \item $S(id(r)) = (\Val{v}, P)$
-  \item $m        = {\Res \omega v P}$
-  \end{enumerate}
-% 3.
-\item By 1.a), 2.a), and WF-Host2
-  \begin{enumerate}[label=(\alph*)]
-  \item $\Delta ; \Sigma \vdash (E[\texttt{await}(\iota)], \mu, Q, S)^h$ for some $\Sigma$
-  \item $\Delta ; \Sigma' \vdash (t', \mu', Q', S')^{h'}$ for some $\Sigma'$
-  \item $\Delta \vdash H''$
-  \end{enumerate}
-% 4.
-\item By 3.a) and WF-HostConfig
-  \begin{enumerate}[label=(\alph*)]
-  \item $\Sigma \vdash \mu$
-  \item $\Delta \vdash S$
-  \item $\Delta ; \Sigma \vdash Q$
-  \item $\Gamma ; \Sigma ; \Delta \vdash E[\texttt{await}(\iota)] : T$
-  \end{enumerate}
-% 5.
-\item By 2.c), 4.c), and WF-Q1-4, $\Delta ; \Sigma \vdash Q''$.
-% 6.
-\item By 4.a-b), 5., 4.d), and WF-HostConfig, $\Delta ; \Sigma \vdash (E[\texttt{await}(\iota)], \mu, Q'', S)^h$.
-% 7.
-\item By 3.b) and WF-HostConfig
-  \begin{enumerate}[label=(\alph*)]
-  \item $\Sigma' \vdash \mu'$
-  \item $\Delta \vdash S'$
-  \item $\Delta ; \Sigma' \vdash Q'$
-  \item $\Gamma ; \Sigma' ; \Delta \vdash t' : T'$
-  \end{enumerate}
-% 8.
-\item By 2.d), 4.b), and WF-SiloStore2
-  \begin{enumerate}[label=(\alph*)]
-  \item $\Delta(id(r)) = \hat{T}$
-  \item $\emptyset ; \emptyset ; \Delta \vdash v : \hat{T}$
-  \end{enumerate}
-% 9.
-\item By 2.c), 4.c), and WF-Q4
-  \begin{enumerate}[label=(\alph*)]
-  \item $\Delta(id(r)) = \Delta(\omega)$
-  \item $\Delta \vdash r$
-  \end{enumerate}
-% 10.
-\item By 8.a-b), 9.a), WF-Q1, and WF-Q3, $\Delta ; \Sigma' \vdash m :: \epsilon$.
-% 11.
-\item By 7.c), 10., and Lemma~\ref{lem:queue-concat}, $\Delta ; \Sigma' \vdash Q' \cdot m$.
-% 12.
-\item By 7.a-b), 11., 7.d), and WF-HostConfig, $\Delta ; \Sigma' \vdash (t', \mu', Q' \cdot m, S')^{h'}$.
-% 13.
-\item By 3.c), 6., 12., and WF-Host2, $\Delta \vdash H'$.
-\end{enumerate}
-
-\item Case R-Req2.
-\begin{enumerate}
-% 1.
-\item By the assumptions
-  \begin{enumerate}[label=(\alph*)]
-  \item $\Delta \vdash H$
-  \item $H \twoheadrightarrow H'$
-  \end{enumerate}
-% 2.
-\item By R-Req2
-  \begin{enumerate}[label=(\alph*)]
-  \item $H = \{ (E[\texttt{await}(\iota)], \mu, Q, S)^h, (t', \mu', Q', S')^{h'} \} \cup H''$
-  \item $H' = \{ (E[\texttt{await}(\iota)], \mu, Q'', S)^h, (t', \mu', Q' \cdot m, S')^{h'} \} \cup H''$
-  \item $Q         = {\Req {h'} r \omega} :: Q''$
-  \item $S(id(r))  = (\Fwd{r'}, P)$
-  \item $S(id(r')) = (\Val{v}, P')$
-  \item $m         = {\Res \omega v P}$
-  \end{enumerate}
-% 3.
-\item By 1.a), 2.a), and WF-Host2
-  \begin{enumerate}[label=(\alph*)]
-  \item $\Delta ; \Sigma \vdash (E[\texttt{await}(\iota)], \mu, Q, S)^h$ for some $\Sigma$
-  \item $\Delta ; \Sigma' \vdash (t', \mu', Q', S')^{h'}$ for some $\Sigma'$
-  \item $\Delta \vdash H''$
-  \end{enumerate}
-% 4.
-\item By 3.a) and WF-HostConfig
-  \begin{enumerate}[label=(\alph*)]
-  \item $\Sigma \vdash \mu$
-  \item $\Delta \vdash S$
-  \item $\Delta ; \Sigma \vdash Q$
-  \item $\Gamma ; \Sigma ; \Delta \vdash E[\texttt{await}(\iota)] : T$
-  \end{enumerate}
-% 5.
-\item By 2.c), 4.c), and WF-Q1-4, $\Delta ; \Sigma \vdash Q''$.
-% 6.
-\item By 4.a-b), 5., 4.d), and WF-HostConfig, $\Delta ; \Sigma \vdash (E[\texttt{await}(\iota)], \mu, Q'', S)^h$.
-% 7.
-\item By 3.b) and WF-HostConfig
-  \begin{enumerate}[label=(\alph*)]
-  \item $\Sigma' \vdash \mu'$
-  \item $\Delta \vdash S'$
-  \item $\Delta ; \Sigma' \vdash Q'$
-  \item $\Gamma' ; \Sigma' ; \Delta \vdash t' : T'$
-  \end{enumerate}
-% 8.
-\item By 2.c), 4.c), and WF-Q4
-  \begin{enumerate}[label=(\alph*)]
-  \item $\Delta(id(r)) = \Delta(\omega)$
-  \item $\Delta \vdash r$
-  \item $\Delta ; \Sigma \vdash Q''$
-  \end{enumerate}
-% 9.
-\item By 2.d), 4.b), and WF-SiloStore3
-  \begin{enumerate}[label=(\alph*)]
-  \item $\Delta(id(r')) = \Delta(id(r))$
-  \item $\Delta \vdash r'$
-  \end{enumerate}
-% 10.
-\item By 2.e), 4.b), and WF-SiloStore2
-  \begin{enumerate}[label=(\alph*)]
-  \item $\Delta(id(r')) = \hat{T}$
-  \item $\emptyset ; \emptyset ; \Delta \vdash v : \hat{T}$
-  \end{enumerate}
-% 11.
-\item By 8.a), 9.a), and 10.a), $\Delta(\omega) = \hat{T}$.
-% 12.
-\item By 10.b), 11., WF-Q1, and WF-Q3, $\Delta ; \Sigma' \vdash {\Res \omega v P} :: \epsilon$.
-% 13.
-\item By 7.c), 12., and Lemma~\ref{lem:queue-concat}, $\Delta ; \Sigma' \vdash Q' \cdot m$.
+\item By 11., 12.b), and Lemma~\ref{lem:queue-concat}, $\Sigma \vdash Q' \cdot m$.
 % 14.
-\item By 7.a-b), 13., 7.d), and WF-HostConfig, $\Delta ; \Sigma' \vdash (t', \mu', Q' \cdot m, S')^{h'}$.
+\item By 12.a), 12.c), 13., and WF-HostConfig, $\Sigma \vdash (t', \sigma', Q' \cdot m)^{h'}$.
 % 15.
-\item By 3.c), 6., 14., and WF-Host2, $\Delta \vdash H'$.
+\item By 2.b), 3.c), 10., 14., and WF-Host2, $\Sigma \vdash H'$.
 \end{enumerate}
 
-\item Case R-Req3.
+\item Case R-ProcQueueRemote.
 \begin{enumerate}
 % 1.
 \item By the assumptions
   \begin{enumerate}[label=(\alph*)]
-  \item $\Delta \vdash H$
+  \item $\Sigma \vdash H$
   \item $H \twoheadrightarrow H'$
   \end{enumerate}
 % 2.
-\item By R-Req3
+\item By R-ProcQueueRemote
   \begin{enumerate}[label=(\alph*)]
-  \item $H = \{ (E[\texttt{await}(\iota)], \mu, Q, S)^h, (t', \mu', Q', S')^{h'} \} \cup H''$
-  \item $H' = \{ (E[\texttt{await}(\iota)], \mu, Q'', S)^h, (t', \mu', Q' \cdot m, S')^{h'} \} \cup H''$
-  \item $Q         = {\Req {h''} r \omega} :: Q''$
-  \item $S(id(r))  = (\Fwd{r'}, P)$
-  \item $id(r') \notin dom(S)$
-  \item $h'        = host(r')$
-  \item $m         = {\Req {h''} {r'} \omega}$
+  \item $H = \{ (E[\texttt{await}(\iota)], \sigma, Q)^h, (t', \sigma', Q')^{h'} \} \cup H''$
+  \item $H' = \{ (E[\texttt{await}(\iota)], \sigma'', Q'')^h, (t', \sigma', Q' ::: \hat{Q})^{h'} \} \cup H''$
+  \item $Q        = m \cdot Q''$
+  \item $process(h, m, \sigma) = (\sigma'', \hat{Q}, h')$
   \end{enumerate}
 % 3.
 \item By 1.a), 2.a), and WF-Host2
   \begin{enumerate}[label=(\alph*)]
-  \item $\Delta ; \Sigma \vdash (E[\texttt{await}(\iota)], \mu, Q, S)^h$ for some $\Sigma$
-  \item $\Delta ; \Sigma' \vdash (t', \mu', Q', S')^{h'}$ for some $\Sigma'$
-  \item $\Delta \vdash H''$
+  \item $\Sigma \vdash (E[\texttt{await}(\iota)], \sigma, Q)^h$
+  \item $\Sigma \vdash (t', \sigma', Q')^{h'}$
+  \item $\Sigma \vdash H''$
   \end{enumerate}
 % 4.
 \item By 3.a) and WF-HostConfig
   \begin{enumerate}[label=(\alph*)]
-  \item $\Sigma \vdash \mu$
-  \item $\Delta \vdash S$
-  \item $\Delta ; \Sigma \vdash Q$
-  \item $\Gamma ; \Sigma ; \Delta \vdash E[\texttt{await}(\iota)] : T$
+  \item $\Sigma \vdash \sigma$
+  \item $\Sigma \vdash Q$
+  \item $\Gamma ; \Sigma \vdash E[\texttt{await}(\iota)] : T$
   \end{enumerate}
 % 5.
-\item By 2.c), 4.c), and WF-Q1-4, $\Delta ; \Sigma \vdash Q''$.
+\item By 2.c), 4.b), and WF-Q1-3
+  \begin{enumerate}[label=(\alph*)]
+  \item $\Sigma \vdash Q''$
+  \item $\Sigma \vdash m \cdot \epsilon$
+  \end{enumerate}
 % 6.
-\item By 4.a-b), 5., 4.d), and WF-HostConfig, $\Delta ; \Sigma \vdash (E[\texttt{await}(\iota)], \mu, Q'', S)^h$.
+\item By 4.a-c), 5.a), and WF-HostConfig, $\Sigma \vdash (E[\texttt{await}(\iota)], \sigma, Q'')^h$.
 % 7.
 \item By 3.b) and WF-HostConfig
   \begin{enumerate}[label=(\alph*)]
-  \item $\Sigma' \vdash \mu'$
-  \item $\Delta \vdash S'$
-  \item $\Delta ; \Sigma' \vdash Q'$
-  \item $\Gamma' ; \Sigma' ; \Delta \vdash t' : T'$
+  \item $\Sigma \vdash \sigma'$
+  \item $\Sigma \vdash Q'$
+  \item $\Gamma ; \Sigma \vdash t' : T'$
   \end{enumerate}
 % 8.
-\item By 2.c), 4.c), and WF-Q4
+\item By 4.a), 5.b), 2.d), and Lemma~\ref{lem:process}
   \begin{enumerate}[label=(\alph*)]
-  \item $\Delta(id(r)) = \Delta(\omega)$
-  \item $\Delta \vdash r$
-  \item $\Delta ; \Sigma \vdash Q''$
+  \item $\Sigma' \vdash \sigma''$
+  \item $\Sigma' \vdash \hat{Q}$
+  \item $\Sigma' \supseteq \Sigma$
   \end{enumerate}
 % 9.
-\item By 2.d), 4.b), and WF-SiloStore3
-  \begin{enumerate}[label=(\alph*)]
-  \item $\Delta(id(r')) = \Delta(id(r))$
-  \item $\Delta \vdash r'$
-  \end{enumerate}
+\item By 5.a), 8.c), and WF-Q1-3, $\Sigma' \vdash Q''$.
 % 10.
-\item By 8.a), 9.a-b), WF-Q1, and WF-Q4, $\Delta ; \Sigma' \vdash {\Req {h''} {r'} \omega} :: \epsilon$.
+\item By 4.c), 8.c), and part 1 of Lemma~\ref{lem:weakening-store-typing}, $\Gamma ; \Sigma' \vdash E[\texttt{await}(\iota)] : T$.
 % 11.
-\item By 7.c), 10., and Lemma~\ref{lem:queue-concat}, $\Delta ; \Sigma' \vdash Q' \cdot m$.
+\item By 8.a), 9., 10., and WF-HostConfig, $\Sigma' \vdash (E[\texttt{await}(\iota)], \sigma'', Q'')^h$.
 % 12.
-\item By 7.a-b), 11., 7.d), and WF-HostConfig, $\Delta ; \Sigma' \vdash (t', \mu', Q' \cdot m, S')^{h'}$.
+\item By 7.a), 8.c), and WF-Store2, $\Sigma' \vdash \sigma'$.
 % 13.
-\item By 3.c), 6., 12., and WF-Host2, $\Delta \vdash H'$.
+\item By 7.b), 8.c), WF-Q1-3, $\Sigma' \vdash Q'$.
+% 14.
+\item By 8.b), 13., and Lemma~\ref{lem:queue-concat}, $\Sigma' \vdash Q' ::: \hat{Q}$.
+% 15.
+\item By 7.c) and part 1 of Lemma~\ref{lem:weakening-store-typing}, $\Gamma ; \Sigma' \vdash t' : T'$.
+% 16.
+\item By 12., 14., 15., and WF-HostConfig, $\Sigma' \vdash (t', \sigma', Q' ::: \hat{Q})^{h'}$.
+% 17.
+\item By 3.c), 8.c), and part 3 of Lemma~\ref{lem:weakening-store-typing}, $\Sigma' \vdash H''$.
+% 18.
+\item By 11., 16., 17., WF-Host2, $\Sigma' \vdash H'$.
 \end{enumerate}
-
 
 \end{itemize}
 
