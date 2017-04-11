@@ -397,6 +397,16 @@ Q      ::=                                             & \mbox{{\it{message queu
   (E[id(r)], \sigma, Q \cdot {\Req h r {id(r)}})^h
 }
 
+\inferrule[\textsc{R-PopulateLocal}] {
+  \iota = (h, i) \quad i~\text{fresh} \quad
+  r     = {\Mat \iota}                \quad
+  m     = {\PopReq h \iota }
+} {
+  (E[\texttt{populate}(h)], \sigma, Q)^h
+  \longrightarrow
+  (E[r], \sigma, Q \cdot m)^h
+}
+
 \inferrule[\textsc{R-ProcQueueLocal}] {
   process(h, m, \sigma) = (\sigma', Q', h)
 } {
@@ -1499,6 +1509,59 @@ Part 2: by induction on a derivation of $(t, \sigma, Q)^h \longrightarrow (t', \
 \item 3.a), 8., 10., and \textsc{WF-HostConfig} close this case.
 \end{enumerate}
 
+\item Case \textsc{R-PopulateLocal}.
+\begin{enumerate}
+% 1.
+\item By the assumptions
+  \begin{enumerate}[label=(\alph*)]
+  \item $\Sigma \vdash (t, \sigma, Q)^h$
+  \item $(t, \sigma, Q)^h \longrightarrow (t', \sigma', Q')^h$
+  \end{enumerate}
+% 2.
+\item By \textsc{R-PopulateLocal}
+  \begin{enumerate}[label=(\alph*)]
+  \item $t = E[\texttt{populate}(h)]$
+  \item $t' = E[r]$
+  \item $Q' = Q \cdot {\PopReq h \iota}$
+  \item $\sigma' = \sigma$
+  \item $\iota = (h, i)$
+  \item $i~\text{fresh}$
+  \item $r = {\Mat \iota}$
+  \end{enumerate}
+% 3.
+\item By 1.a) and \textsc{WF-HostConfig}
+  \begin{enumerate}[label=(\alph*)]
+  \item $\Sigma \vdash \sigma$
+  \item $\Sigma \vdash Q$
+  \item $\Gamma ; \Sigma \vdash t : T$
+  \end{enumerate}
+% 4.
+\item By 2.a) and 3.c), $\Gamma ; \Sigma \vdash \texttt{populate}(h) : T'$.
+% 5.
+\item By 4. and \textsc{T-Populate}
+  \begin{enumerate}[label=(\alph*)]
+  \item $T' = \texttt{SiloRef}[\texttt{Unit}]$
+  \item $\Gamma ; \Sigma \vdash h : \texttt{Host}$
+  \end{enumerate}
+% 6.
+\item Define $\Sigma' := [\iota \mapsto \texttt{Unit}]\Sigma$
+% 7.
+\item By 2.g), 6., and \textsc{WF-Ref3}, $\Sigma' \vdash r$.
+% 8.
+\item By 6., 7., and \textsc{T-SiloRef}, $\Gamma ; \Sigma' \vdash r : \texttt{SiloRef}[\texttt{Unit}]$.
+% 9.
+\item By 2.a), 3.c), 4., 5.a), 8., and Lemma~\ref{lem:weakening-store-typing}, $\Gamma ; \Sigma' \vdash t' : T$.
+% 10.
+\item By 6., 3.b), and \textsc{WF-Q1-5}, $\Sigma' \vdash {\PopReq h \iota} \cdot Q$. 
+% 11.
+\item By 10. and Lemma~\ref{lem:queue-ordering}, $\Sigma' \vdash Q \cdot {\PopReq h \iota}$.
+% 12. XXXX
+\item By 3.a), 6., and \textsc{WF-Store1-2}, $\Sigma' \vdash \sigma$.
+% 13.
+\item By 12.
+
+\end{enumerate}
+
 \item Case \textsc{R-ProcQueueLocal}.
 \begin{enumerate}
 % 1.
@@ -1789,6 +1852,48 @@ Part 3: by induction on a derivation of $H \twoheadrightarrow H'$ with case anal
 \end{itemize}
 
 \end{proof}
+
+\newpage
+
+% requests are always sent to the correct node that can actually process them
+\begin{thm}
+\emph{(Simple Lineage)}\label{th:simple-lineage}
+
+Assume $r$ is a lineage containing only Mat and Mapped, and furthermore .
+
+\begin{enumerate}
+
+% situation following a R-SendLocal: Req in own queue
+\item If $C = (t, \sigma, {\Req h r \iota} \cdot Q)^h$ and $\Sigma \vdash C$, then $C \longrightarrow^* (t', \sigma', Q' \cdot {\Res \iota v})^h$.
+
+\item $\{ (t, \sigma, Q)^h, (t', \sigma', {\Req h r \iota} \cdot Q')^{h'} \} \cup H$ reduces in a finite number of steps to $\{ (t'', \sigma'', Q'' \cdot {\Res \iota v})^h, (t''', \sigma''', Q''')^{h'} \} \cup H'$.
+
+\end{enumerate}
+
+\end{thm}
+\begin{proof}
+
+\end{proof}
+
+
+\begin{thm}
+\emph{(General Lineage)}\label{th:gen-lineage}
+
+\begin{enumerate}
+
+% situation following a R-SendLocal: Req in own queue
+\item If $C = (t, \sigma, {\Req h r \iota} \cdot Q)^h$ and $\Sigma \vdash C$, then $C \longrightarrow^* (t', \sigma', Q' \cdot {\Res \iota v})^h$.
+
+\item $\{ (t, \sigma, Q)^h, (t', \sigma', {\Req h r \iota} \cdot Q')^{h'} \} \cup H$ reduces in a finite number of steps to $\{ (t'', \sigma'', Q'' \cdot {\Res \iota v})^h, (t''', \sigma''', Q''')^{h'} \} \cup H'$.
+
+\end{enumerate}
+
+\end{thm}
+\begin{proof}
+TBD.
+\end{proof}
+
+
 
 \newpage
 
