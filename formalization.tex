@@ -832,6 +832,7 @@ ACHTUNG: wir muessen unbedingt erwaehnen, dass all -Remote Regeln jeweils nur as
   \Sigma \vdash {\Req h r \iota} \cdot Q
 }
 
+% TODO: Re-asses if \Gamma can be \emptyset?
 \inferrule[\textsc{WF-HostConfig}] {
   \Sigma \vdash \sigma  \quad
   \Sigma \vdash Q       \quad
@@ -1084,6 +1085,7 @@ $consume(\iota, P, \sigma) := \begin{cases}
 \end{figure}
 
 \newpage
+
 \section{Appendix}
 
 \begin{lem}
@@ -1854,6 +1856,154 @@ Part 3: by induction on a derivation of $H \twoheadrightarrow H'$ with case anal
 \end{proof}
 
 \newpage
+
+\begin{figure}
+\centering
+\begin{mathpar}
+
+\inferrule[\textsc{SR-Var}] {
+} {
+  \mathit{silorefs}(x) = \emptyset
+}
+
+\inferrule[\textsc{SR-Abs}] {
+  \mathit{silorefs}(t) = R
+} {
+  \mathit{silorefs}((x : T) \Rightarrow t) = R
+}
+
+\inferrule[\textsc{SR-App}] {
+  \mathit{silorefs}(t) = R \quad \mathit{silorefs}(t') = R'
+} {
+  \mathit{silorefs}(t~t') = R \cup R'
+}
+
+\inferrule[\textsc{SR-Record}] {
+  \mathit{silorefs}(\seq{t}) = \seq{R}
+} {
+  \mathit{silorefs}(\{\seq{l = t}\}) = \bigcup \seq{R}
+}
+
+\inferrule[\textsc{SR-Select}] {
+  \mathit{silorefs}(t) = R
+} {
+  \mathit{silorefs}(t.l) = R
+}
+
+\inferrule[\textsc{SR-Unit}] {
+} {
+  \mathit{silorefs}(\texttt{unit}) = \emptyset
+}
+
+\inferrule[\textsc{SR-Spore}] {
+  \mathit{silorefs}(\seq{t}) = \seq{R} \quad \mathit{silorefs}(t) = R
+} {
+  \mathit{silorefs}(\texttt{spore}~\{~\seq{x : T = t}~; (x: T) \Rightarrow t~\}) = (\bigcup \seq{R}) \cup R
+}
+
+\inferrule[\textsc{SR-Populate}] {
+  \mathit{silorefs}(t) = R \quad \mathit{silorefs}(t') = R'
+} {
+  \mathit{silorefs}(\texttt{populate}(t, t')) = R \cup R'
+}
+
+\inferrule[\textsc{SR-Map}] {
+  \mathit{silorefs}(t) = R \quad \mathit{silorefs}(t') = R'
+} {
+  \mathit{silorefs}(\texttt{map}(t, t')) = R \cup R'
+}
+
+\inferrule[\textsc{SR-FlatMap}] {
+  \mathit{silorefs}(t) = R \quad \mathit{silorefs}(t') = R'
+} {
+  \mathit{silorefs}(\texttt{flatMap}(t, t')) = R \cup R'
+}
+
+\inferrule[\textsc{SR-Send}] {
+  \mathit{silorefs}(t) = R
+} {
+  \mathit{silorefs}(\texttt{send}(t)) = R
+}
+
+\inferrule[\textsc{SR-Await}] {
+  \mathit{silorefs}(t) = R
+} {
+  \mathit{silorefs}(\texttt{await}(t)) = R
+}
+
+\inferrule[\textsc{SR-Ident}] {
+} {
+  \mathit{silorefs}(\iota) = \empty
+}
+
+\inferrule[\textsc{SR-SiloRef}] {
+} {
+  \mathit{silorefs}(r) = \{ r \}
+}
+
+\inferrule[\textsc{SR-Host}] {
+} {
+  \mathit{silorefs}(h) = \empty
+}
+
+\end{mathpar}
+\caption{Function $\mathit{silorefs}$.}\label{fig:silorefs}
+\end{figure}
+
+\begin{defn}[silorefs]
+  The function $\mathit{silorefs} \in t \rightarrow \mathcal{P}(r)$ obtains the set of silo references occurring in term $t$; $\mathit{silorefs}$ is defined by the rules in Figure~\ref{fig:silorefs}.
+\end{defn}
+
+\begin{thm}
+\emph{(Materialization Request)}\label{th:materialize-req}
+
+% Angenommen wir starten mit hosts, wo alle Silorefs in einem der Stores materialisiert sind.
+
+Let $R = \bigcup \{ \mathit{silorefs}(t) ~|~ (t, \sigma, Q)^h \in H \}$ and $\forall r \in R.~\sigma(id(r)) = {\Val v}$ where $(t, \sigma, Q)^{host(r)} \in H$ for some value $v$.
+
+If $H \twoheadrightarrow H'$, $R' = \bigcup \{ \mathit{silorefs}(t') ~|~ (t', \sigma', Q')^{h'} \in H' \}$, and $R' \setminus R = \{ r' \}$, then sending $\Req h {r'} {id(r')}$ to $host(r')$ (for some $h$) results in materializing $r'$ in a finite number of steps.
+
+\end{thm}
+\begin{proof}
+Case analysis of the applied reduction rule. A new silo reference is only created in the following cases:
+
+\begin{enumerate}
+\item Case \textsc{R-Local} and \textsc{R-Seq} and \textsc{R-Map}.
+\begin{enumerate}
+% 1.
+\item By \textsc{R-Local}
+  \begin{enumerate}[label=(\alph*)]
+  \item $H = \{ (t, \sigma, Q)^h \} \cup H''$
+  \item $(t, \sigma, Q)^h \rightarrow (t', \sigma', Q')^h$
+  \item $H' = \{ (t', \sigma', Q')^h \} \cup H''$
+  \end{enumerate}
+% 2.
+\item By \textsc{R-Seq}
+  \begin{enumerate}[label=(\alph*)]
+  \item $t = E[s]$
+  \item $t' = E[s']$
+  \item $Q' = Q$
+  \end{enumerate}
+% 3.
+\item By \textsc{R-Map}
+  \begin{enumerate}[label=(\alph*)]
+  \item $s = \texttt{map}(r, p)$
+  \item $s' = r'$
+  \item $r' = {\Mapped {(h, i)} r p}$ for some fresh $i$
+  \end{enumerate}
+% goal: sending $\Req h {r'} {id(r')}$ to $host(r')$ results in materializing $r'$ in a finite number of steps.
+% 4.
+\item By 3.c) and def. host, $host(r') = host(r)$.
+% wissen: r ist materialisiert, auf host(r).
+% 5.
+\item Sending $m = \Req h {r'} {id(r')}$ to $host(r') = host(r)$ causes $host(r)$ to process $m$ after a finite number of steps.
+
+\end{enumerate}
+\item Case \textsc{R-Local} and \textsc{R-Seq} and \textsc{R-FMap}.
+\item Case \textsc{R-Local} and \textsc{R-PopulateLocal}.
+\item Case \textsc{R-PopulateRemote}.
+\end{enumerate}
+\end{proof}
 
 % requests are always sent to the correct node that can actually process them
 \begin{thm}
