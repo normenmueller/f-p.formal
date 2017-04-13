@@ -974,7 +974,7 @@ $consume(\iota, P, \sigma) := \begin{cases}
   \sigma'         = [\iota' \mapsto \highlight{(\Fwd{r''}, \emptyset)}]\sigma \quad
   \sigma''        = {\consume {id(r')} P {\sigma'}}
 } {
-  process(h, {\Req {h'} r \iota}, \sigma) = (\sigma'', {\Req {h'} {r''} \iota} \cdot \epsilon, h)
+  process(h, {\Req {h'} r \iota}, \sigma) = (\sigma'', {\Req {h'} {r''} \iota} \cdot \epsilon, host(r''))
 }
 
 \inferrule[\textsc{Proc-ReqFwd}] {
